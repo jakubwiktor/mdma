@@ -1,7 +1,7 @@
-from PySide6 import QtCore, QtGui, QtWidgets 
+from PySide6 import QtWidgets, QtCore
 from PySide6.QtWidgets import QApplication, QTableWidgetItem, QDialog
 from PySide6.QtUiTools import QUiLoader
-from PySide6.QtCore import QFile, QIODevice
+from PySide6.QtCore import QFile, QIODevice, Signal, Slot
 
 
 import sys
@@ -11,9 +11,12 @@ from pycromanager import Bridge
 import math
 import time
 
- #TODO read the exposure form the preset and set it: current_exposure = self.ui.lineEdit_setExposure.text()
-#TODO add timelapse parameters with a button
+#TODO read the exposure form the preset and set it: current_exposure = self.ui.lineEdit_setExposure.text()
+
+#TODO add timelapse parameters with a button -> send a signal to the main GUI?
+
 #TODO add functionality to load predefined settings, as if this function was used to edit a configuration from the main window
+
 #TODO find out a way to pass the core property from mdma.py main window, so it wont open connections each time window is called
 
 # def makeEvents(channels, positions, frames):
@@ -48,9 +51,11 @@ import time
 
 #     return events 
 
-
 class add_configuration(QtWidgets.QDialog):
-    def __init__(self, parent=None):
+    
+    config_to_emit = QtCore.Signal(dict)
+
+    def __init__(self, parent=None, preset=None, presetNumber=0):
         super(add_configuration, self).__init__(parent)
 
         # uic.loadUi("add_configuration.ui", self)
@@ -64,10 +69,35 @@ class add_configuration(QtWidgets.QDialog):
         self.ui.core = self.ui.bridge.get_core()      # these can be passed from the main window?
         self.ui.mmStudio = self.ui.bridge.get_studio()#
         self.ui.configs = self.get_configs()
-        self.ui.frames = []
-        self.ui.positions = []
-        self.ui.channels = []
         self.ui.result = []
+
+        #enable loading and editing the presets
+        if preset is not None:
+
+            self.ui.frames = preset['frames']
+            self.ui.positions = preset['positions']
+            self.ui.channels = preset['channels']
+            
+            for ch in self.ui.channels:
+                out_string = f"{ch['Group']}, {ch['preset']}, {ch['Exposure']} ms"
+                self.ui.listWidget_channels.addItem(out_string)
+            
+            for ch in self.ui.positions:
+                self.ui.listWidget_positionList.addItem(str(ch))
+            self.ui.label_info_pos_val.setText(str(len(self.ui.positions)))    
+
+            for frame_number, frame in enumerate(self.ui.frames):
+                ty_res = time.gmtime(frame)
+                res = time.strftime("%H:%M:%S",ty_res)
+                self.ui.listWidget_timePoints.addItem(f"f: {frame_number}, t: {res}")   
+            self.ui.label_info_frames_val.setText(str(len(self.ui.frames)))
+            ty_res = time.gmtime(self.ui.frames[-1])
+            total_time_hms = time.strftime("%H:%M:%S",ty_res)
+            self.ui.label_info_duration_val.setText(total_time_hms)
+        else:
+            self.ui.frames = []
+            self.ui.positions = []
+            self.ui.channels = []
 
         #initialise channel selection boxes
         for c in self.ui.configs: #GROUP
@@ -95,13 +125,13 @@ class add_configuration(QtWidgets.QDialog):
         self.ui.pushButton_removePreset.clicked.connect(self.remove_channel_preset)
         
         #closing behaviour
-        self.ui.pushButton_addConfiguration.clicked.connect(self.push_configuration_to_main)
+        self.ui.pushButton_addConfiguration.clicked.connect(self.emit_configuration)
         self.ui.pushButton_cancelConfiguration.clicked.connect(self.cancel_configuration_do_nothing)
 
-        #initialise channels column and define editing function
-        self.ui.tableWidget_channels.setColumnCount(3)
-        self.ui.tableWidget_channels.setHorizontalHeaderLabels(['Group','Preset','Exposure'])
-        self.ui.tableWidget_channels.itemDoubleClicked.connect(self.update_channel_table)
+        # eventualy change to table widget
+        # self.ui.tableWidget_channels.setColumnCount(3)
+        # self.ui.tableWidget_channels.setHorizontalHeaderLabels(['Group','preset','Exposure'])
+        # self.ui.tableWidget_channels.itemDoubleClicked.connect(self.update_channel_table)
        
     #channel callbacks
 
@@ -131,20 +161,22 @@ class add_configuration(QtWidgets.QDialog):
         
         #update the list
         self.ui.channels.append({'Group':current_group, 
-                              'Preset':current_preset, 
+                              'preset':current_preset, 
                               'Exposure': current_exposure})
 
         #update list widget
-        self.ui.listWidget_channels.addItem(str(self.ui.channels[-1]))
+        ch = (self.ui.channels[-1])
+        out_string = f"{ch['Group']}, {ch['preset']}, {ch['Exposure']} ms"
+        self.ui.listWidget_channels.addItem(out_string)
 
-        row = self.ui.tableWidget_channels.rowCount()
-        self.ui.tableWidget_channels.insertRow(row)
+        # row = self.ui.tableWidget_channels.rowCount()
+        # self.ui.tableWidget_channels.insertRow(row)
         
-        for column_num in range(3):
-            chans_parameters = list(self.ui.channels[-1].keys())
-            self.ui.tableWidget_channels.setItem(row,
-                                              column_num, 
-                                              QTableWidgetItem(self.ui.channels[-1][chans_parameters[column_num]]))
+        # for column_num in range(3):
+        #     chans_parameters = list(self.ui.channels[-1].keys())
+        #     self.ui.tableWidget_channels.setItem(row,
+        #                                       column_num, 
+        #                                       QTableWidgetItem(self.ui.channels[-1][chans_parameters[column_num]]))
 
     def remove_channel_preset(self): 
         #remove one channel from the list, took me ages to write!
@@ -157,19 +189,20 @@ class add_configuration(QtWidgets.QDialog):
         #update list widget
         self.ui.listWidget_channels.clear()
         for ch in self.ui.channels:
-            self.ui.listWidget_channels.addItem(str(ch))
+            out_string = f"{ch['Group']}, {ch['preset']}, {ch['Exposure']} ms"
+            self.ui.listWidget_channels.addItem(out_string)
         
-    def update_channel_table(self):
-        #TODO
-        #signals when the cell in the table was double clicked: means its ready to update
-        out  = self.ui.tableWidget_channels.selectedItems() 
-        row = out[0].row()
-        column = out[0].column()
+    # def update_channel_table(self):
+    #     #TODO
+    #     #signals when the cell in the table was double clicked: means its ready to update
+    #     out  = self.ui.tableWidget_channels.selectedItems() 
+    #     row = out[0].row()
+    #     column = out[0].column()
         
-        self.ui.tableWidget_channels.setItem(row,column,QTableWidgetItem(str_out))
-        #update self.ui.channels
-        self.ui.channels[row]['Exposure'] = self.ui.tableWidget_channels.item(row,column).text()
-        print(self.ui.channels)
+    #     self.ui.tableWidget_channels.setItem(row,column,QTableWidgetItem(str_out))
+    #     #update self.ui.channels
+    #     self.ui.channels[row]['Exposure'] = self.ui.tableWidget_channels.item(row,column).text()
+    #     print(self.ui.channels)
                              
 
     #position callbacks
@@ -275,15 +308,6 @@ class add_configuration(QtWidgets.QDialog):
         total_time_hms = time.strftime("%H:%M:%S",ty_res)
         self.ui.label_info_duration_val.setText(total_time_hms)
 
-
-    def push_configuration_to_main(self):
-        #send configuration and close the window
-        #return configuration?
-        
-        #self.ui.frames, self.ui. positions, self.ui.channels
-        # self.ui.result = makeEvents(self.ui.channels, self.ui.positions, self.ui.frames)
-        self.ui.result = {'channels':self.ui.channels, 'positions':self.ui.positions, 'frames':self.ui.frames}
-
     def cancel_configuration_do_nothing(self):
         #just close the window and do nothing
         self.ui.close()
@@ -297,12 +321,19 @@ class add_configuration(QtWidgets.QDialog):
         numberOfPositions = positions.get_number_of_positions()
 
         positionDictionary = []
+        #add for Ritacquire compatibility
+        #thisPosition.get_default_xy_stage()
+        #thisPosition.get_default_z_stage()
         for pos in range(numberOfPositions):
             thisPosition = positions.get_position(pos)
-            positionDictionary.append({thisPosition.get_label():{
-                    'x':thisPosition.get_x(),
-                    'y':thisPosition.get_y(),
-                    'z':thisPosition.get_z()}})
+            positionDictionary.append({
+                    'Position Label':thisPosition.get_label(),
+                    'X':thisPosition.get_x(),
+                    'Y':thisPosition.get_y(),
+                    'Z':thisPosition.get_z(),
+                    'XYStage':thisPosition.get_default_xy_stage(),
+                    'ZStage':thisPosition.get_default_z_stage()})
+
         return positionDictionary
 
     def get_configs(self):
@@ -330,17 +361,11 @@ class add_configuration(QtWidgets.QDialog):
                 #acces configuration: core.get_config_data(thisGroup,thisConfig)   
         return configs
 
-
+    def emit_configuration(self):
+        #self explanatory
+        self.config_to_emit.emit({'channels':self.ui.channels, 'positions':self.ui.positions, 'frames':self.ui.frames})
+        
 def main():
-    # loader = QUiLoader()
-    # app = QApplication(sys.argv)
-
-    # ui_file = QFile('add_configuration.ui')
-    # window = loader.load(ui_file)
-    # ui_file.close()
-    # window.show() 
-    # sys.exit(app.exec())
-
     app = QtWidgets.QApplication(sys.argv)
     window = add_configuration() 
     app.exec()

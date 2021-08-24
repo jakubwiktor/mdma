@@ -1,17 +1,13 @@
 from PySide6 import QtCore, QtGui, QtWidgets
 from PySide6.QtWidgets import QApplication, QTableWidgetItem,QFileDialog
 from PySide6.QtUiTools import QUiLoader
-from PySide6.QtCore import QFile, QIODevice
+from PySide6.QtCore import QFile, QIODevice, Signal, Slot
 
+import copy
 
 import sys
 import add_configuration
 from pycromanager import Bridge
-
-def add_configuration_call(parent):
-    # config_app = QtWidgets.QDialog()
-    window_conf = add_configuration.add_configuration() 
-    # window_conf.show()
 
 class mdma(QtWidgets.QMainWindow):
     def __init__(self, parent=None):
@@ -25,41 +21,51 @@ class mdma(QtWidgets.QMainWindow):
         self.ui.core = self.ui.bridge.get_core()
         self.ui.studio = self.ui.bridge.get_studio()
                 
+        #preload a config for development
+        self.ui.selected_preset = -1
         self.ui.configurations = []
+        self.ui.counter = 0
+        self.initConf = {'channels': [{'Group': 'Camera', 'preset': 'HighRes', 'Exposure': '10'}], 'positions': [{'Position Label': 'Pos0', 'X': 0, 'Y': 0, 'Z': 0, 'XYStage': 'XY', 'ZStage': 'Z'}, {'Position Label': 'Pos1', 'X': 0, 'Y': 0, 'Z': 0, 'XYStage': 'XY', 'ZStage': 'Z'}], 'frames': [0, 60, 120]}
+
         self.ui.pushButton_addConfiguration.clicked.connect(self.add_configuration_call)
+        self.ui.pushButton_editConfiguration.clicked.connect(self.edit_configuration_call)
         self.ui.pushButton_deleteConfiguration.clicked.connect(self.delete_configuration)
         self.ui.pushButton_clearConfiguration.clicked.connect(self.clear_configuration)
         self.ui.pushButton_load.clicked.connect(self.load_settings)
         self.ui.pushButton_preview.clicked.connect(self.preview)
         self.ui.pushButton_run.clicked.connect(self.RUN)
         self.ui.pushButton_save.clicked.connect(self.save_setting)
-
-    #here we call add_cofiguration window and add a binding to 'ADD' button
+        
     def add_configuration_call(self):
-        self.conf_window = add_configuration.add_configuration()
-        self.conf_window.ui.pushButton_addConfiguration.clicked.connect(self.push_configuration_to_main)
+        #open a configuration window and grab the signal, put in into the imaging configuration list
+        self.conf_window = add_configuration.add_configuration(preset=self.initConf)
+        #connect to the slot
+        self.conf_window.config_to_emit.connect(self.send_configuration)
 
-    #here we define 'ADD' button response, it reads the parameters of the conf. window
-    def push_configuration_to_main(self):
-        #get a configuration window and grab a configuration 
-
-        #TODO - think how to pass the configurations. It only makes sense to construct the events 
-        # as the very last step once the folders are knbown and all channels are added.
-        
-        #there must be a smarter way to do this, right?
-        self.ui.config_parameters = self.conf_window.ui.result #result from configuraton window 
-        
-        #check if all parameters are filled
-        if len(self.ui.config_parameters['channels']) == 0 or len(self.ui.config_parameters['positions']) == 0 or len(self.ui.config_parameters['frames']) == 0:
+    def edit_configuration_call(self):
+        self.ui.selected_preset = self.ui.listWidget_configs.currentRow()
+        if  self.ui.selected_preset == -1:
             return
-       
-        out = []
-        out.append([x['Preset'] for x in self.ui.config_parameters['channels']]) #chans
-        out.append([list(x.keys())[0] for x in self.ui.config_parameters['positions']]) #pos
-        out.append(len(self.ui.config_parameters['frames'])) #num of frames
+        print(self.ui.configurations[self.ui.selected_preset])
+        self.conf_window = add_configuration.add_configuration(preset=self.ui.configurations[self.ui.selected_preset])
+        self.conf_window.config_to_emit.connect(self.edit_configuration)
 
-        out_string = f"{out[0]}, {out[1]}, num. frames: {out[2]}"
-        self.ui.listWidget_configs.addItem(out_string)
+    @QtCore.Slot(dict)
+    def send_configuration(self, message):
+        #here we get the signal emited by 'add' button of the add_configuration gui
+        self.ui.listWidget_configs.addItem(str(message))
+        self.ui.configurations.append(copy.deepcopy(message)) # i dont know how to avoid deepcopy!
+        for ch in self.ui.configurations:
+            print(ch)
+
+    @QtCore.Slot(dict)
+    def edit_configuration(self, message):
+        #here we get the signal emited by 'add' button of the add_configuration gui in the EDITING mode
+        self.ui.configurations[self.ui.selected_preset] = copy.deepcopy(message)
+        #repring the list
+        self.ui.listWidget_configs.clear()
+        for conf in self.ui.configurations:
+            self.ui.listWidget_configs.addItem(str(conf))
 
     def delete_configuration(self):
         print('delete')
