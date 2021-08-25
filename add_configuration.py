@@ -55,7 +55,7 @@ class add_configuration(QtWidgets.QDialog):
     
     config_to_emit = QtCore.Signal(dict)
 
-    def __init__(self, parent=None, preset=None, presetNumber=0):
+    def __init__(self, parent=None, preset=None, windowMode='ADD'):
         super(add_configuration, self).__init__(parent)
 
         # uic.loadUi("add_configuration.ui", self)
@@ -65,7 +65,7 @@ class add_configuration(QtWidgets.QDialog):
         self.ui = loader.load("add_configuration.ui")
         self.ui.show()
 
-        self.ui.bridge = Bridge()                  #
+        self.ui.bridge = Bridge()                     #
         self.ui.core = self.ui.bridge.get_core()      # these can be passed from the main window?
         self.ui.mmStudio = self.ui.bridge.get_studio()#
         self.ui.configs = self.get_configs()
@@ -127,6 +127,10 @@ class add_configuration(QtWidgets.QDialog):
         #closing behaviour
         self.ui.pushButton_addConfiguration.clicked.connect(self.emit_configuration)
         self.ui.pushButton_cancelConfiguration.clicked.connect(self.cancel_configuration_do_nothing)
+
+        # modify the 'ADD' button to 'add' and 'edit' mode
+        if windowMode == 'edit':
+            self.ui.pushButton_addConfiguration.setText('Edit')
 
         # eventualy change to table widget
         # self.ui.tableWidget_channels.setColumnCount(3)
