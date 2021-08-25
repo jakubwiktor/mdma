@@ -12,44 +12,9 @@ import math
 import time
 
 #TODO read the exposure form the preset and set it: current_exposure = self.ui.lineEdit_setExposure.text()
-
-#TODO add timelapse parameters with a button -> send a signal to the main GUI?
-
-#TODO add functionality to load predefined settings, as if this function was used to edit a configuration from the main window
-
 #TODO find out a way to pass the core property from mdma.py main window, so it wont open connections each time window is called
 
-# def makeEvents(channels, positions, frames):
-#     """create dictionary of events for acquisition"""
-#     #parse 1-
-#     #        time
-#     #           |
-#     #           > positions
-#     #                     |
-#     #                     > channels
-#     #loop over timepoints, then positionis, and then each channel
-    
-#     if len(channels) == 0 or len(positions) == 0 or len(frames) == 0:
-#         return []
-
-#     events = []
-#     for tCount, tValue in enumerate(frames):
-#         for p in positions:
-#             pos_name = list(p.keys())[0]
-#             for c in channels:
-#                 temp = {
-#                         'axis':{'time':tCount},
-#                         'min_start_time':tValue,
-#                         'pos_name':pos_name,
-#                         'x':p[pos_name]['x'],
-#                         'y':p[pos_name]['x'],
-#                         'z':p[pos_name]['x'],
-#                         'channel':c,
-#                         'save_path':'empty',
-#                         }
-#                 events.append(temp)
-
-#     return events 
+#TODO - add function to update/change the positions of all existing presets - may be tricky, may be easy
 
 class add_configuration(QtWidgets.QDialog):
     
