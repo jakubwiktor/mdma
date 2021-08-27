@@ -17,10 +17,11 @@ class mdma(QtWidgets.QMainWindow):
         self.ui = loader.load("mdma.ui") #if there is no ('mdma.ui', self) then it works with subwindows
         
         self.ui.show()
+
         self.ui.bridge = Bridge()
         self.ui.core = self.ui.bridge.get_core()
         self.ui.studio = self.ui.bridge.get_studio()
-                
+
         #preload a config for development
         self.ui.selected_preset = -1
         self.ui.configurations = []
@@ -45,7 +46,7 @@ class mdma(QtWidgets.QMainWindow):
         
     def add_configuration_call(self):
         #open a configuration window and grab the signal, put in into the imaging configuration list
-        self.conf_window = add_configuration.add_configuration(preset=self.initConf)
+        self.conf_window = add_configuration.add_configuration(preset=self.initConf, bridge = self.ui.bridge)
         #connect to the slot
         self.conf_window.config_to_emit.connect(self.send_configuration)
 
@@ -54,7 +55,7 @@ class mdma(QtWidgets.QMainWindow):
         self.ui.selected_preset = self.ui.listWidget_configs.currentRow() #store which preset was selected - otherwise the it could be changed by accident
         if  self.ui.selected_preset == -1:
             return
-        self.conf_window = add_configuration.add_configuration(preset=self.ui.configurations[self.ui.selected_preset], windowMode='edit') #open in editing mode
+        self.conf_window = add_configuration.add_configuration(preset=self.ui.configurations[self.ui.selected_preset], windowMode='edit', bridge = self.ui.bridge) #open in editing mode
         self.conf_window.config_to_emit.connect(self.edit_configuration)
 
     @QtCore.Slot(dict)

@@ -20,7 +20,7 @@ class add_configuration(QtWidgets.QDialog):
     
     config_to_emit = QtCore.Signal(dict)
 
-    def __init__(self, parent=None, preset=None, windowMode='ADD'):
+    def __init__(self, parent=None, preset=None, windowMode = 'ADD', bridge = None):
         super(add_configuration, self).__init__(parent)
 
         # uic.loadUi("add_configuration.ui", self)
@@ -30,10 +30,10 @@ class add_configuration(QtWidgets.QDialog):
         self.ui = loader.load("add_configuration.ui")
         self.ui.show()
 
-        self.ui.bridge = Bridge()                     #
-        self.ui.core = self.ui.bridge.get_core()      # these can be passed from the main window?
-        self.ui.mmStudio = self.ui.bridge.get_studio()#
+        self.ui.core =  bridge.get_core()
+        self.ui.mm_studio = bridge.get_studio()
         self.ui.configs = self.get_configs()
+
         self.ui.result = []
 
         #enable loading and editing the presets
@@ -283,9 +283,9 @@ class add_configuration(QtWidgets.QDialog):
 
     def getPositions(self):
         
-        #get current positions from mmStudio 
+        #get current positions from mm_studio 
 
-        positionListManager = self.ui.mmStudio.get_position_list_manager() 
+        positionListManager = self.ui.mm_studio.get_position_list_manager() 
         positions = positionListManager.get_position_list()
         numberOfPositions = positions.get_number_of_positions()
 
@@ -335,8 +335,10 @@ class add_configuration(QtWidgets.QDialog):
         self.config_to_emit.emit({'channels':self.ui.channels, 'positions':self.ui.positions, 'frames':self.ui.frames})
         
 def main():
+
+    mm_bridge = Bridge()                     #
     app = QtWidgets.QApplication(sys.argv)
-    window = add_configuration() 
+    window = add_configuration(bridge = mm_bridge) 
     app.exec()
 
 if __name__ == '__main__':
