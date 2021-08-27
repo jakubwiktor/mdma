@@ -6,8 +6,11 @@ from PySide6.QtCore import QFile, QIODevice, Signal, Slot
 import copy
 
 import sys
-import add_configuration
+import os
 from pycromanager import Bridge
+
+import add_configuration
+from utils import acquisition
 
 class mdma(QtWidgets.QMainWindow):
     def __init__(self, parent=None):
@@ -27,14 +30,15 @@ class mdma(QtWidgets.QMainWindow):
         self.ui.configurations = []
 
         #for development purposes
-        self.initConf = {'channels': [{'Group': 'Camera', 'preset': 'HighRes', 'Exposure': '10'}], 'positions': [{'Position Label': 'Pos0', 'X': 0, 'Y': 0, 'Z': 0, 'XYStage': 'XY', 'ZStage': 'Z'}, {'Position Label': 'Pos1', 'X': 0, 'Y': 0, 'Z': 0, 'XYStage': 'XY', 'ZStage': 'Z'}], 'frames': [0, 60, 120]}
-        self.initalProgram = [{'channels': [{'Group': 'Camera', 'preset': 'HighRes', 'Exposure': '10'}], 'positions': [{'Position Label': 'Pos0', 'X': 0, 'Y': 0, 'Z': 0, 'XYStage': 'XY', 'ZStage': 'Z'}, {'Position Label': 'Pos1', 'X': 0, 'Y': 0, 'Z': 0, 'XYStage': 'XY', 'ZStage': 'Z'}], 'frames': [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59]}, {'channels': [{'Group': 'Camera', 'preset': 'LowRes', 'Exposure': '10'}], 'positions': [{'Position Label': 'Pos0', 'X': 0, 'Y': 0, 'Z': 0, 'XYStage': 'XY', 'ZStage': 'Z'}, {'Position Label': 'Pos1', 'X': 0, 'Y': 0, 'Z': 0, 'XYStage': 'XY', 'ZStage': 'Z'}], 'frames': [0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30, 32, 34, 36, 38, 40, 42, 44, 46, 48, 50, 52, 54, 56, 58]}, {'channels': [{'Group': 'Camera', 'preset': 'MedRes', 'Exposure': '10'}], 'positions': [{'Position Label': 'Pos0', 'X': 0, 'Y': 0, 'Z': 0, 'XYStage': 'XY', 'ZStage': 'Z'}, {'Position Label': 'Pos1', 'X': 0, 'Y': 0, 'Z': 0, 'XYStage': 'XY', 'ZStage': 'Z'}], 'frames': [0, 3, 6, 9, 12, 15, 
-                            18, 21, 24, 27, 30, 33, 36, 39, 42, 45, 48, 51, 54, 57]}]
+        self.initalProgram = [{'channels': [{'Group': 'Channel', 'preset': 'DAPI', 'Exposure': '10'}], 'positions': [{'Position Label': 'Pos0', 'X': 0, 'Y': 0, 'Z': 0, 'XYStage': 'XY', 'ZStage': 'Z'}, {'Position Label': 'Pos1', 'X': 0, 'Y': 0, 'Z': 0, 'XYStage': 'XY', 'ZStage': 'Z'}], 'frames': [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]}, 
+                              {'channels': [{'Group': 'Channel', 'preset': 'Cy5', 'Exposure': '10'}],  'positions': [{'Position Label': 'Pos0', 'X': 0, 'Y': 0, 'Z': 0, 'XYStage': 'XY', 'ZStage': 'Z'}, {'Position Label': 'Pos1', 'X': 0, 'Y': 0, 'Z': 0, 'XYStage': 'XY', 'ZStage': 'Z'}], 'frames': [0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20]}, 
+                              {'channels': [{'Group': 'Channel', 'preset': 'FITC', 'Exposure': '10'}], 'positions': [{'Position Label': 'Pos0', 'X': 0, 'Y': 0, 'Z': 0, 'XYStage': 'XY', 'ZStage': 'Z'}, {'Position Label': 'Pos1', 'X': 0, 'Y': 0, 'Z': 0, 'XYStage': 'XY', 'ZStage': 'Z'}], 'frames': [0, 3, 6, 9, 12, 15, 18, 21, 24, 27, 30]}]
         self.ui.configurations = self.initalProgram
         #populate the list
         for conf in self.ui.configurations:
-            self.ui.listWidget_configs.addItem(str(conf))  
+            self.ui.listWidget_configs.addItem(self.print_configuration(conf))  
 
+        #initialise buttons connections
         self.ui.pushButton_addConfiguration.clicked.connect(self.add_configuration_call)
         self.ui.pushButton_editConfiguration.clicked.connect(self.edit_configuration_call)
         self.ui.pushButton_deleteConfiguration.clicked.connect(self.delete_configuration)
@@ -43,10 +47,12 @@ class mdma(QtWidgets.QMainWindow):
         self.ui.pushButton_preview.clicked.connect(self.preview)
         self.ui.pushButton_run.clicked.connect(self.RUN)
         self.ui.pushButton_save.clicked.connect(self.save_setting)
+        self.ui.pushButton_updatePositions.clicked.connect(self.update_positions)
+        self.ui.pushButton_changePositions.clicked.connect(self.change_positions)
         
     def add_configuration_call(self):
         #open a configuration window and grab the signal, put in into the imaging configuration list
-        self.conf_window = add_configuration.add_configuration(preset=self.initConf, bridge = self.ui.bridge)
+        self.conf_window = add_configuration.add_configuration(bridge = self.ui.bridge)
         #connect to the slot
         self.conf_window.config_to_emit.connect(self.send_configuration)
 
@@ -61,7 +67,7 @@ class mdma(QtWidgets.QMainWindow):
     @QtCore.Slot(dict)
     def send_configuration(self, message):
         #here we get the signal emited by 'add' button of the add_configuration gui
-        self.ui.listWidget_configs.addItem(str(message))
+        self.ui.listWidget_configs.addItem(self.print_configuration(message))
         self.ui.configurations.append(copy.deepcopy(message)) # i dont know how to avoid deepcopy!
 
     @QtCore.Slot(dict)
@@ -71,7 +77,16 @@ class mdma(QtWidgets.QMainWindow):
         #repring the list
         self.ui.listWidget_configs.clear()
         for conf in self.ui.configurations:
-            self.ui.listWidget_configs.addItem(str(conf))
+            self.ui.listWidget_configs.addItem(self.print_configuration(conf))
+
+    def print_configuration(self,single_configuration):
+        #TODO - handle case when many channels are selected (spell the channels?
+        # [x['preset'] for x in conf['channels']])?
+        nchans = ', '.join([x['preset'] for x in single_configuration['channels']])
+        npos = len(single_configuration['positions'])
+        nframes = len(single_configuration['frames'])
+
+        return f"channels: {nchans} , positions: {npos} , frames: {nframes}"
 
     def delete_configuration(self):
         #delete highlighted preset
@@ -81,37 +96,74 @@ class mdma(QtWidgets.QMainWindow):
         del self.ui.configurations[selected_preset]
         self.ui.listWidget_configs.clear()
         for conf in self.ui.configurations:
-            self.ui.listWidget_configs.addItem(str(conf))
+            self.ui.listWidget_configs.addItem(self.print_configuration(conf))
 
     def clear_configuration(self):
         #clear ALL configuratins
+        #TODO open dialog window to ask if you really want to clear all configuratins
         self.ui.configurations = []
         self.ui.listWidget_configs.clear()
 
-    def load_settings(self):
-        #figure out first how to store the configurations
-        print('load')
-
     def preview(self):
-        for ev in self.compile_experiment():
-            print(ev)
+        #preview the events in a new window
+        self.ui.preview_list = QtWidgets.QListWidget()
+        self.ui.preview_list.resize(640, 480)
+        self.ui.preview_list.setWindowTitle('Preview')
+
+        #TODO write it in some decent format - position - channel - time > maybe best in a table?
+        for fnum, ev in enumerate(self.compile_experiment()):
+            self.ui.preview_list.addItem(f"{fnum}, position: {ev['pos_label']} , channel: {ev['channel']['config']} , time: {ev['min_start_time']}s")
+
+        self.ui.preview_list.show()
 
     def RUN(self):
+
+        #TODO - !!! break the acquisiton when the window is closed !!!
+
         #select/create a folder to save the acquisition and run
         save_dir_name = QFileDialog.getExistingDirectory(self, "Select Directory")
-        run_events = self.compile_experiment(save_root=save_dir_name)
-        for ev in run_events:
-            print(ev)
 
-        #TODO: prepare the folders to put the images in, call the pycromanager logic from here.
+        #if cancel was pressed
+        if save_dir_name == '': 
+            return
+
+        run_events = self.compile_experiment(save_root=save_dir_name)
+
+        #get dirs name and create folders at desired location
+        # save_paths = [os.path.dirname(x['save_location']) for x in run_events]
+        # save_paths = list(set(save_paths))
+        # for savedir in save_paths:
+        #     os.makedirs(savedir)
+        
+        self.ui.acq = acquisition.RunAcquisition(events = run_events)
+        self.ui.acq._run()
+
+        #start the acquisition
+        
+    def update_positions(self):
+        #I guess loop through every position in the self.configurations and change the x,y,.. to what is new,
+        #First check if the positions match, otherwise bail out!
+        pass
+
+    def change_positions(self):
+        #easier than update - just grab the lost of positions and then change the self.configurations to the new positions
+        pass
 
     def save_setting(self):
         #select a file to save the parameters of the acquision: how to store them? 
         file_name = QFileDialog.getSaveFileName(self, "Save Config. File",
-                                                "C:\\",
+                                                "C:\Documents\\",
                                                  "configuration file, '.txt")
-        #fileName = ('C:/Users/kubus/Desktop/save', "configuration file, '.mdma")
-        print(file_name)
+
+        if file_name[0] == '': #if cancel was pressed
+            return
+        
+        #TODO finish this part
+        pass
+
+    def load_settings(self):
+        #figure out first how to store the configurations
+        print('load')
 
     def compile_experiment(self, save_root=None):
         #parse 1-
@@ -125,7 +177,7 @@ class mdma(QtWidgets.QMainWindow):
         #   {
         # 'axes':{name}, 
         # 'channel': {'group':name, 'config':name},
-        # 'exposure:  number,
+        # 'exposure: seconds,
         # 'z': number,
         # 'min_start_time': time_in_s
         # 'x': x_position_in_µm,
@@ -137,27 +189,34 @@ class mdma(QtWidgets.QMainWindow):
 
         events = []
         save_pathway = None
+        counter = 0
         for config in self.ui.configurations:
             for time_counter, time_value in enumerate(config['frames']):
-                for position in config['positions']:
+                for position_index, position in enumerate(config['positions']):
                     for channel in config['channels']:
                         
                         save_path = f"{save_root}/{position['Position Label']}/{channel['preset']}/img_{time_counter:09d}.tiff"
                         
-                        event = {'axes':{'position': position['Position Label']},
-                                'channel': {'group':channel['Group'], 'config':channel['preset']},
-                                'exposure': channel['Exposure'],
-                                'z':position['Z'],
-                                'min_start_time':time_value,
-                                'x':position['X'],
-                                'y':position['Y'],
-                                'save_location':save_path
+                        event = {'axes':{'position': position_index},
+                                'channel': {'group': channel['Group'], 'config': channel['preset']},
+                                'exposure': int(channel['Exposure']),
+                                'z': position['Z'],
+                                'min_start_time': time_value,
+                                'x': position['X'],
+                                'y': position['Y'],
+                                'pos_label': position['Position Label'],
+                                'save_location': save_path
                                 }
                         
+                        counter += 1
+                        
                         events.append(event)
-        
+
         sorted_events = sorted(events, key = lambda i: (i['min_start_time'], i['axes']['position'])) #imgetter wont work because position sits withing dictinary 'axes'
-        
+
+        for ie, _ in enumerate(sorted_events):
+            sorted_events[ie]['axes']['counter'] = ie
+
         return(sorted_events)
 
 def main():
