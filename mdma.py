@@ -41,6 +41,9 @@ class mdma(QtWidgets.QMainWindow):
         #initialise buttons connections
         self.ui.pushButton_addConfiguration.clicked.connect(self.add_configuration_call)
         self.ui.pushButton_editConfiguration.clicked.connect(self.edit_configuration_call)
+        self.ui.listWidget_configs.itemDoubleClicked.connect(self.edit_configuration_call)
+        self.ui.listWidget_configs.installEventFilter(self)
+
         self.ui.pushButton_deleteConfiguration.clicked.connect(self.delete_configuration)
         self.ui.pushButton_clearConfiguration.clicked.connect(self.clear_configuration)
         self.ui.pushButton_load.clicked.connect(self.load_settings)
@@ -218,6 +221,29 @@ class mdma(QtWidgets.QMainWindow):
             sorted_events[ie]['axes']['counter'] = ie
 
         return(sorted_events)
+
+    def eventFilter(self,source,event):
+        
+        #check if over a preset - how to add action to click on menu?
+
+        if event.type() == QtCore.QEvent.Type.ContextMenu:
+            if source.itemAt(event.pos()) is not None:
+                menu = QtWidgets.QMenu()
+                menu.addAction(QtGui.QAction("edit",   self, triggered=self.edit_configuration_call))
+                menu.addAction(QtGui.QAction("remove", self, triggered=self.delete_configuration))
+                menu.exec(event.globalPos())
+                
+                # item = source.itemAt(event.pos())
+                # print(item.text()) - acces the item in qlistwidget
+                return True
+
+        return super().eventFilter(source,event) #i dont know what this does? return False could work too
+
+    def editThis(self):
+        print('edit')
+    
+    def deleteThis(self):
+        print('edit')
 
 def main():
     # configs = get_configs(core) #dictionary to store the MM configurations
