@@ -68,12 +68,12 @@ class add_configuration(QtWidgets.QDialog):
         for c in self.ui.configs: #GROUP
             self.ui.comboBox_selectGroup.addItem(c)
         current_config = self.ui.comboBox_selectGroup.currentText()
-        for ch in self.ui.configs[current_config]: #CONFIG 
-            self.ui.comboBox_selectPreset.addItem(ch)
+        # for ch in self.ui.configs[current_config]: #CONFIG 
+        #     self.ui.comboBox_selectPreset.addItem(ch)
         
         #TODO!!
         #update the exposure block
-        self.ui.lineEdit_setExposure.setText('10')  
+        # self.ui.lineEdit_setExposure.setText('10')  
         
         #positions
         self.ui.pushButton_addPos.clicked.connect(self.add_positions_list)
@@ -114,13 +114,13 @@ class add_configuration(QtWidgets.QDialog):
     #     else:
     #         event.ignore()
             
-    def change_group_config(self):
+    # def change_group_config(self):
         #select micromanager channel group setting
-        self.ui.comboBox_selectPreset.clear()
-        current_config = self.ui.comboBox_selectGroup.currentText()
-        if current_config is not None:
-            for ch in self.ui.configs[current_config]:
-                self.ui.comboBox_selectPreset.addItem(ch)
+        # self.ui.comboBox_selectPreset.clear()
+        # current_config = self.ui.comboBox_selectGroup.currentText()
+        # if current_config is not None:
+            # for ch in self.ui.configs[current_config]:
+                # self.ui.comboBox_selectPreset.addItem(ch)
     
 
     def add_channel_preset(self):

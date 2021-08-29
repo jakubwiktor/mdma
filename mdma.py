@@ -101,6 +101,15 @@ class mdma(QtWidgets.QMainWindow):
         for conf in self.ui.configurations:
             self.ui.listWidget_configs.addItem(self.print_configuration(conf))
 
+
+    def duplicate_configuration(self):
+        selected_preset = self.ui.listWidget_configs.currentRow()
+        if  selected_preset == -1:
+            return
+        self.ui.configurations.append(copy.deepcopy(self.ui.configurations[selected_preset]))
+        self.ui.listWidget_configs.addItem(self.print_configuration(self.ui.configurations[selected_preset]))
+
+
     def clear_configuration(self):
         #clear ALL configuratins
         #TODO open dialog window to ask if you really want to clear all configuratins
@@ -231,6 +240,8 @@ class mdma(QtWidgets.QMainWindow):
                 menu = QtWidgets.QMenu()
                 menu.addAction(QtGui.QAction("edit",   self, triggered=self.edit_configuration_call))
                 menu.addAction(QtGui.QAction("remove", self, triggered=self.delete_configuration))
+                menu.addAction(QtGui.QAction("duplicate", self, triggered=self.duplicate_configuration))
+                
                 menu.exec(event.globalPos())
                 
                 # item = source.itemAt(event.pos())
@@ -239,11 +250,6 @@ class mdma(QtWidgets.QMainWindow):
 
         return super().eventFilter(source,event) #i dont know what this does? return False could work too
 
-    def editThis(self):
-        print('edit')
-    
-    def deleteThis(self):
-        print('edit')
 
 def main():
     # configs = get_configs(core) #dictionary to store the MM configurations
