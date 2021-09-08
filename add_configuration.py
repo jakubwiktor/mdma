@@ -1,4 +1,4 @@
-from PySide6 import QtWidgets, QtCore
+from PySide6 import QtWidgets, QtCore, QtGui
 from PySide6.QtWidgets import QApplication, QTableWidgetItem, QDialog
 from PySide6.QtUiTools import QUiLoader
 from PySide6.QtCore import QFile, QIODevice, Signal, Slot
@@ -20,7 +20,7 @@ class add_configuration(QtWidgets.QDialog):
     
     config_to_emit = QtCore.Signal(dict)
 
-    def __init__(self, parent=None, preset=None, windowMode = 'ADD', bridge = None):
+    def __init__(self, parent=None, preset=None, windowMode = 'ADD'):
         super(add_configuration, self).__init__(parent)
 
         # uic.loadUi("add_configuration.ui", self)
@@ -30,23 +30,96 @@ class add_configuration(QtWidgets.QDialog):
         self.ui = loader.load("add_configuration.ui")
         self.ui.show()
 
-        self.ui.core =  bridge.get_core()
-        self.ui.mm_studio = bridge.get_studio()
+        self.ui.bridge = Bridge()
+        self.ui.core =  self.ui.bridge.get_core()
+        self.ui.mm_studio = self.ui.bridge.get_studio()
         self.ui.configs = self.get_configs()
 
         self.ui.result = []
 
+        #initialise tableWidge_channels -> before they are updated by loading the presets
+        for _ in range(3):
+            self.ui.tableWidget_channels.insertColumn(_)
+        #fill columns headers
+        self.ui.tableWidget_channels.setHorizontalHeaderLabels(['Group','Preset','Exposure'])
+        
+        #stretch to fill
+        header = self.ui.tableWidget_channels.horizontalHeader()
+        header.setSectionResizeMode(0, QtWidgets.QHeaderView.Stretch)
+        header.setSectionResizeMode(1, QtWidgets.QHeaderView.Stretch)
+        header.setSectionResizeMode(2, QtWidgets.QHeaderView.Stretch)
+        self.ui.tableWidget_channels.verticalHeader().setDefaultSectionSize(10)
+        
+        #set custom context menu for channel table <- i guess that is not needed anymore - 2021.sep.08
+        # self.ui.tableWidget_channels.setContextMenuPolicy(QtCore.Qt.CustomContextMenu) 
+       
+        #positions
+        self.ui.pushButton_addPos.clicked.connect(self.add_positions_list)
+        self.ui.pushButton_clearPos.clicked.connect(self.clear_position_list)
+        self.ui.pushButton_removePos.clicked.connect(self.remove_position_from_list)
+      
+        #timelapse
+        self.ui.pushButton_addTime.clicked.connect(self.add_timelapse)
+        self.ui.pushButton_clearTime.clicked.connect(self.clear_timelapse)
+        self.ui.pushButton_removeTime.clicked.connect(self.remove_timepoint_from_list)
+
+        #channels
+        # self.ui.comboBox_selectGroup.currentIndexChanged.connect(self.change_group_config)
+        self.ui.pushButton_addPreset.clicked.connect(self.add_channel_preset)
+        self.ui.pushButton_removePreset.clicked.connect(self.remove_channel_preset)
+        
+        #closing behaviour
+        self.ui.pushButton_addConfiguration.clicked.connect(self.emit_configuration)
+        self.ui.pushButton_cancelConfiguration.clicked.connect(self.cancel_configuration_do_nothing)
+
+        # modify the 'ADD' button to 'add' and 'edit' mode
+        if windowMode == 'edit':
+            self.ui.pushButton_addConfiguration.setText('Edit')
+       
         #enable loading and editing the presets
         if preset is not None:
 
+            #here the channel configurations are stored
             self.ui.frames = preset['frames']
             self.ui.positions = preset['positions']
             self.ui.channels = preset['channels']
+
+            for ch_index, ch in enumerate(self.ui.channels):
+                n = self.ui.tableWidget_channels.rowCount()
+                self.ui.tableWidget_channels.setRowCount(n + 1)
             
-            for ch in self.ui.channels:
-                out_string = f"{ch['Group']}, {ch['preset']}, {ch['Exposure']} ms"
-                self.ui.listWidget_channels.addItem(out_string)
-            
+                #to populate comboboxes
+                this_config_name = ch['Group']
+
+                cb_group = QtWidgets.QComboBox()
+                for _ in list(self.ui.configs.keys()):
+                    cb_group.addItem(_)    
+                self.ui.tableWidget_channels.setCellWidget(n,0,cb_group)
+                
+                #select the correct Group to display
+                current_group_index = list(self.ui.configs.keys()).index(this_config_name)
+                self.ui.tableWidget_channels.cellWidget(ch_index,0).setCurrentIndex(current_group_index)
+                
+                #add callback after creation not to invoke the callback on creation
+                cb_group.currentIndexChanged.connect(self.change_group_combobox)
+                
+                cb_preset = QtWidgets.QComboBox()
+                for _ in self.ui.configs[this_config_name]:
+                    cb_preset.addItem(_)
+                self.ui.tableWidget_channels.setCellWidget(n,1,cb_preset)
+
+                #display the correct Preset
+                current_preset_index = self.ui.configs[this_config_name].index(ch['Preset'])
+                self.ui.tableWidget_channels.cellWidget(ch_index,1).setCurrentIndex(current_preset_index)
+
+                #add callback
+                cb_preset.currentIndexChanged.connect(self.change_preset_combobox)
+
+                exposure_widget = QtWidgets.QLineEdit()
+                exposure_widget.textChanged.connect(self.change_preset_exposure)
+                exposure_widget.setText(str(ch['Exposure']))
+                self.ui.tableWidget_channels.setCellWidget(n,2,exposure_widget)
+    
             for ch in self.ui.positions:
                 self.ui.listWidget_positionList.addItem(str(ch))
             self.ui.label_info_pos_val.setText(str(len(self.ui.positions)))    
@@ -67,114 +140,104 @@ class add_configuration(QtWidgets.QDialog):
         #initialise channel selection boxes
         for c in self.ui.configs: #GROUP
             self.ui.comboBox_selectGroup.addItem(c)
-        current_config = self.ui.comboBox_selectGroup.currentText()
-        # for ch in self.ui.configs[current_config]: #CONFIG 
-        #     self.ui.comboBox_selectPreset.addItem(ch)
-        
-        #TODO!!
-        #update the exposure block
-        # self.ui.lineEdit_setExposure.setText('10')  
-        
-        #positions
-        self.ui.pushButton_addPos.clicked.connect(self.add_positions_list)
-        self.ui.pushButton_clearPos.clicked.connect(self.clear_position_list)
-        self.ui.pushButton_removePos.clicked.connect(self.remove_position_from_list)
-        #timelapse
-        self.ui.pushButton_addTime.clicked.connect(self.add_timelapse)
-        self.ui.pushButton_clearTime.clicked.connect(self.clear_timelapse)
-        self.ui.pushButton_removeTime.clicked.connect(self.remove_timepoint_from_list)
 
-        #channels
-        self.ui.comboBox_selectGroup.currentIndexChanged.connect(self.change_group_config)
-        self.ui.pushButton_addPreset.clicked.connect(self.add_channel_preset)
-        self.ui.pushButton_removePreset.clicked.connect(self.remove_channel_preset)
-        
-        #closing behaviour
-        self.ui.pushButton_addConfiguration.clicked.connect(self.emit_configuration)
-        self.ui.pushButton_cancelConfiguration.clicked.connect(self.cancel_configuration_do_nothing)
-
-        # modify the 'ADD' button to 'add' and 'edit' mode
-        if windowMode == 'edit':
-            self.ui.pushButton_addConfiguration.setText('Edit')
-
-        # eventualy change to table widget
-        # self.ui.tableWidget_channels.setColumnCount(3)
-        # self.ui.tableWidget_channels.setHorizontalHeaderLabels(['Group','preset','Exposure'])
-        # self.ui.tableWidget_channels.itemDoubleClicked.connect(self.update_channel_table)
-       
     #channel callbacks
-
-    #not working
-    # def closeEvent(self, event):
-    #     reply = self.ui.QMessageBox.question(self, 'Window Close', 'Are you sure you want to close the window?', 
-    #                 QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
-    #     if reply == QDialog.QMessageBox.Yes:
-    #         event.accept()
-    #         print('Window closed')
-    #     else:
-    #         event.ignore()
-            
-    # def change_group_config(self):
-        #select micromanager channel group setting
-        # self.ui.comboBox_selectPreset.clear()
-        # current_config = self.ui.comboBox_selectGroup.currentText()
-        # if current_config is not None:
-            # for ch in self.ui.configs[current_config]:
-                # self.ui.comboBox_selectPreset.addItem(ch)
-    
-
     def add_channel_preset(self):
-        current_group = self.ui.comboBox_selectGroup.currentText()
-        current_preset = self.ui.comboBox_selectPreset.currentText()
-        current_exposure = self.ui.lineEdit_setExposure.text()
+        #tableWidge_channels callbacks - working with comboBoxes
+
+        n = self.ui.tableWidget_channels.rowCount()
+        self.ui.tableWidget_channels.setRowCount(n + 1)
+       
+        #to populate comboboxes
+        first_config_name = list(self.ui.configs.keys())[0]
+
+        cb_group = QtWidgets.QComboBox()
+        for _ in list(self.ui.configs.keys()):
+            cb_group.addItem(_)    
+        self.ui.tableWidget_channels.setCellWidget(n,0,cb_group)
+        #add calback after creation not to invoke the callback on creation
+        cb_group.currentIndexChanged.connect(self.change_group_combobox)
         
-        #update the list
-        self.ui.channels.append({'Group':current_group, 
-                              'preset':current_preset, 
-                              'Exposure': current_exposure})
-
-        #update list widget
-        ch = (self.ui.channels[-1])
-        out_string = f"{ch['Group']}, {ch['preset']}, {ch['Exposure']} ms"
-        self.ui.listWidget_channels.addItem(out_string)
-
-        # row = self.ui.tableWidget_channels.rowCount()
-        # self.ui.tableWidget_channels.insertRow(row)
         
-        # for column_num in range(3):
-        #     chans_parameters = list(self.ui.channels[-1].keys())
-        #     self.ui.tableWidget_channels.setItem(row,
-        #                                       column_num, 
-        #                                       QTableWidgetItem(self.ui.channels[-1][chans_parameters[column_num]]))
+        cb_preset = QtWidgets.QComboBox()
+        for _ in self.ui.configs[first_config_name]:
+            cb_preset.addItem(_)
+        self.ui.tableWidget_channels.setCellWidget(n,1,cb_preset)
+        cb_preset.currentIndexChanged.connect(self.change_preset_combobox)
 
-    def remove_channel_preset(self): 
-        #remove one channel from the list, took me ages to write!
-        channel_presets_selected = self.ui.listWidget_channels.currentRow()
-        if  channel_presets_selected == -1:
+        exposure_widget = QtWidgets.QLineEdit()
+        exposure_widget.textChanged.connect(self.change_preset_exposure)
+        exposure_widget.setText('100')
+        self.ui.tableWidget_channels.setCellWidget(n,2,exposure_widget)
+
+        #update channel list
+        self.ui.channels.append({'Group':first_config_name, 
+                                 'Preset':self.ui.configs[first_config_name][0], 
+                                 'Exposure': 100})
+
+    def change_group_combobox(self,event):
+        #detect the change in the *channel* combo box and update the channels
+        #event -> is the index of the combo box
+
+        combo_box_index = event
+
+        this_row = self.ui.tableWidget_channels.currentRow()
+        
+        #this is reference to the combo box
+        this_item = self.ui.tableWidget_channels.cellWidget(this_row,0)
+
+        #check if there is already a channel added
+        if this_item is None:
             return
 
-        del self.ui.channels[channel_presets_selected]
+        #update the stored channel in preset, update the cb_preset
+        selected_config_gruop = this_item.itemText(combo_box_index)
         
-        #update list widget
-        self.ui.listWidget_channels.clear()
-        for ch in self.ui.channels:
-            out_string = f"{ch['Group']}, {ch['preset']}, {ch['Exposure']} ms"
-            self.ui.listWidget_channels.addItem(out_string)
-        
-    # def update_channel_table(self):
-    #     #TODO
-    #     #signals when the cell in the table was double clicked: means its ready to update
-    #     out  = self.ui.tableWidget_channels.selectedItems() 
-    #     row = out[0].row()
-    #     column = out[0].column()
-        
-    #     self.ui.tableWidget_channels.setItem(row,column,QTableWidgetItem(str_out))
-    #     #update self.ui.channels
-    #     self.ui.channels[row]['Exposure'] = self.ui.tableWidget_channels.item(row,column).text()
-    #     print(self.ui.channels)
-                             
+        #check if any change was actually made to the selection
+        if selected_config_gruop == self.ui.channels[this_row]['Group']:
+            return
 
-    #position callbacks
+        self.ui.tableWidget_channels.cellWidget(this_row,1).setCurrentIndex(0)
+
+        cb_preset = QtWidgets.QComboBox()
+        for _ in self.ui.configs[selected_config_gruop]:
+            cb_preset.addItem(_)
+        self.ui.tableWidget_channels.setCellWidget(this_row,1,cb_preset)
+        cb_preset.currentIndexChanged.connect(self.change_preset_combobox)
+
+        self.ui.channels[this_row] = ({'Group':selected_config_gruop, 
+                                       'Preset':self.ui.configs[selected_config_gruop][0], 
+                                       'Exposure': self.ui.channels[this_row]['Exposure']})
+
+    def change_preset_combobox(self,event):
+        #detect and change *preset* combobox
+       
+        combo_box_index = event
+       
+        this_row = self.ui.tableWidget_channels.currentRow()
+       
+        this_item = self.ui.tableWidget_channels.cellWidget(this_row,1)
+        
+        if this_item is None:
+            return
+        
+        selected_preset_gruop = this_item.itemText(combo_box_index)
+
+        self.ui.channels[this_row]['Preset'] = selected_preset_gruop
+
+    def change_preset_exposure(self,event):
+        #detec change in exposure in tableWidget
+        current_exposure = event
+        this_row = self.ui.tableWidget_channels.currentRow()
+        if this_row == -1:
+            return
+        self.ui.channels[this_row]['Exposure'] = current_exposure
+
+    def remove_channel_preset(self): 
+        #remove preset from the channels tableWidget 
+        this_row = self.ui.tableWidget_channels.currentRow()
+        self.ui.tableWidget_channels.removeRow(this_row)
+        del self.ui.channels[this_row] 
 
     def add_positions_list(self):
         #add positions from the MM position list
@@ -214,7 +277,6 @@ class add_configuration(QtWidgets.QDialog):
 
 
     #timelapse callbacks
-
     def add_timelapse(self):
         #compute the timelapse from lenght and framerate 
         duration_hr  = self.ui.spinBox_tlHr.value()
@@ -332,13 +394,13 @@ class add_configuration(QtWidgets.QDialog):
 
     def emit_configuration(self):
         #self explanatory
+        # print(self.ui.channels)
         self.config_to_emit.emit({'channels':self.ui.channels, 'positions':self.ui.positions, 'frames':self.ui.frames})
         
 def main():
 
-    mm_bridge = Bridge()                     #
     app = QtWidgets.QApplication(sys.argv)
-    window = add_configuration(bridge = mm_bridge) 
+    window = add_configuration() 
     app.exec()
 
 if __name__ == '__main__':

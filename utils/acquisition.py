@@ -1,5 +1,7 @@
 #acquisition stuff
-from pycromanager import Acquisition
+from pycromanager import Acquisition, Bridge
+from skimage import io 
+# import matplotlib.pyplot as plt
 
 class RunAcquisition:
 
@@ -7,15 +9,20 @@ class RunAcquisition:
         self.events = events
 
     def _image_process_fn(self,image,metadata):
+       #hook
+
         in_num = (metadata['Axes']['counter'])
+       
         #find back the correct frame!
         print(self.events[in_num]['save_location'], self.events[in_num]['min_start_time'])
-        return image, metadata
         
+        io.imsave(self.events[in_num]['save_location'], image)
+        
+        return None
+
     def _run(self):
         with Acquisition(image_process_fn = self._image_process_fn) as acq:
             acq.acquire(self.events)
-
 
 def main():
     acq = RunAcquisition()

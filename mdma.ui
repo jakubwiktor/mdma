@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>MainWindow</class>
- <widget class="QMainWindow" name="MainWindow">
+ <class>mdma</class>
+ <widget class="QMainWindow" name="mdma">
   <property name="geometry">
    <rect>
     <x>0</x>
@@ -11,7 +11,7 @@
    </rect>
   </property>
   <property name="windowTitle">
-   <string>MainWindow</string>
+   <string>mdma</string>
   </property>
   <widget class="QWidget" name="centralwidget">
    <layout class="QGridLayout" name="gridLayout_3" rowstretch="0">
@@ -237,19 +237,6 @@
                 <property name="bottomMargin">
                  <number>0</number>
                 </property>
-                <item>
-                 <widget class="QPushButton" name="pushButton_deleteConfiguration">
-                  <property name="sizePolicy">
-                   <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
-                    <horstretch>0</horstretch>
-                    <verstretch>0</verstretch>
-                   </sizepolicy>
-                  </property>
-                  <property name="text">
-                   <string>Delete</string>
-                  </property>
-                 </widget>
-                </item>
                </layout>
               </widget>
              </item>
@@ -278,7 +265,7 @@
                  <number>0</number>
                 </property>
                 <item>
-                 <widget class="QPushButton" name="pushButton_editConfiguration">
+                 <widget class="QPushButton" name="pushButton_clearConfiguration">
                   <property name="sizePolicy">
                    <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
                     <horstretch>0</horstretch>
@@ -286,7 +273,7 @@
                    </sizepolicy>
                   </property>
                   <property name="text">
-                   <string>Edit</string>
+                   <string>Clear</string>
                   </property>
                  </widget>
                 </item>
@@ -383,19 +370,6 @@
                 <property name="bottomMargin">
                  <number>0</number>
                 </property>
-                <item>
-                 <widget class="QPushButton" name="pushButton_clearConfiguration">
-                  <property name="sizePolicy">
-                   <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
-                    <horstretch>0</horstretch>
-                    <verstretch>0</verstretch>
-                   </sizepolicy>
-                  </property>
-                  <property name="text">
-                   <string>Clear</string>
-                  </property>
-                 </widget>
-                </item>
                </layout>
               </widget>
              </item>
