@@ -10,6 +10,7 @@ import os
 from pycromanager import Bridge
 
 import add_configuration
+import acquisitionDialog
 from utils import acquisition
 
 #TODO - how to stop running acquisition?
@@ -136,6 +137,7 @@ class mdma(QtWidgets.QMainWindow):
     def RUN(self):
 
         #TODO - !!! break the acquisiton when the window is closed !!!
+        #TODO - open a progress window
 
         #select/create a folder to save the acquisition and run
         save_dir_name = QFileDialog.getExistingDirectory(self, "Select Directory")
@@ -151,12 +153,21 @@ class mdma(QtWidgets.QMainWindow):
         save_paths = list(set(save_paths))
         for savedir in save_paths:
             #if the directory already exitsts start overwriting it
-            if not(os.path.exists(savedir)) and os.path.isdir(savedir):
+            if not(os.path.exists(savedir)):
                 os.makedirs(savedir)
-        
-        self.ui.acq = acquisition.RunAcquisition(events = run_events)
+
+        #TODO - check and delete medatata textfile if it exists - maye better way is to create an empty file and then add line at desired index?
+        metadata_location = f"{save_dir_name}/metadata.txt"
+        if os.path.isfile(metadata_location):
+            os.remove(metadata_location)
+            print('deleting metadata')
+
+        self.ui.acq = acquisition.RunAcquisition(events = run_events, save_path = save_dir_name)
         self.ui.acq._run()
 
+        total_time = max([t['min_start_time'] for t in run_events])
+        self.ui.acquisitionDialog = acquisitionDialog.acquisitionDialog(total_time = total_time)
+        # self.ui.acquisition.exec()
         #start the acquisition
         
     def update_positions(self):
