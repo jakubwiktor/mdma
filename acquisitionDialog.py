@@ -18,7 +18,7 @@ class acquisitionDialog(QtWidgets.QMainWindow):
         self.ui.worker.updateProgress.connect(self.setProgress)
         self.ui.worker.start()
 
-        self.ui.pushButton_abort.clicked.connect(self.close_abort)
+        # self.ui.pushButton_abort.clicked.connect(self.close_abort)
         self.ui.time_counter = 0
 
         #set time labels
@@ -47,14 +47,6 @@ class acquisitionDialog(QtWidgets.QMainWindow):
         total_time_hms = time.strftime("%H:%M:%S",ty_res)
         self.ui.label_time_passed.setText(total_time_hms)
         self.ui.time_counter += 1
-
-    def close_abort(self,event):
-        #hard cancel - closes all windows
-        os._exit(1)
-    
-    def closeEvent(self,event):
-        print(event)
-
 
 class Worker(QtCore.QThread):
 

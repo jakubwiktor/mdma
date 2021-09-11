@@ -13,7 +13,7 @@ class RunAcquisition:
         self.save_path = save_path
         
     def _image_process_fn(self,image,metadata):
-       #hook
+       #image acquisition hook for pycromanager - saves file and metadata
 
         in_num = (metadata['Axes']['counter'])
        
