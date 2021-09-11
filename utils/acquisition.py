@@ -55,7 +55,14 @@ class RunAcquisition:
 
         return None
 
+    def _post_hardware_hook(event,bridge,event_queue):
+        #wait for focus here?
+        # with Bridge() as bridge:
+        core = bridge.get_core()
+        core.wait_for_device('z_stage')
+
     def _run(self):
+        # with Acquisition(image_process_fn = self._image_process_fn, post_hardware_hook_fn = self._post_hardware_hook) as acq:
         with Acquisition(image_process_fn = self._image_process_fn) as acq:
             acq.acquire(self.events)
 

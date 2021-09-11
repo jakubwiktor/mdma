@@ -1,6 +1,8 @@
 from PySide6 import QtWidgets, QtCore, QtGui
 from PySide6.QtUiTools import QUiLoader
 
+from pycromanager import Bridge
+
 import sys
 import time
 import os
@@ -18,7 +20,7 @@ class acquisitionDialog(QtWidgets.QMainWindow):
         self.ui.worker.updateProgress.connect(self.setProgress)
         self.ui.worker.start()
 
-        # self.ui.pushButton_abort.clicked.connect(self.close_abort)
+        self.ui.pushButton_abort.clicked.connect(self.close_abort)
         self.ui.time_counter = 0
 
         #set time labels
@@ -48,6 +50,11 @@ class acquisitionDialog(QtWidgets.QMainWindow):
         self.ui.label_time_passed.setText(total_time_hms)
         self.ui.time_counter += 1
 
+    def close_abort(self):
+    
+        bridge = Bridge()
+        bridge.close()
+    
 class Worker(QtCore.QThread):
 
     #This is the signal that will be emitted during the processing.
