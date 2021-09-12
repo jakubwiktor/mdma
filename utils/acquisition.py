@@ -53,18 +53,30 @@ class RunAcquisition:
             f.write( json.dumps(metadata_line, separators =(',',':')) )
             f.write('\n')
 
-        return None
+        return image,metadata
 
-    def _post_hardware_hook(event,bridge,event_queue):
+    def _post_hardware_hook(self,event,bridge,event_queue):
+        #hook needs 1 or 3 parameters (plus 'self' because it's a class?)
+
         #wait for focus here?
         # with Bridge() as bridge:
         core = bridge.get_core()
-        core.wait_for_device('z_stage')
+        
+        z_stage_name = core.get_focus_device()
+        core.wait_for_device(z_stage_name)
+        print('post_hardware_hook')
+        return event
+
+    def _pre_hardware_hook(self,event):
+        print('pre_hardware_hook')
+        return event
 
     def _run(self):
-        # with Acquisition(image_process_fn = self._image_process_fn, post_hardware_hook_fn = self._post_hardware_hook) as acq:
-        with Acquisition(image_process_fn = self._image_process_fn) as acq:
-            acq.acquire(self.events)
+        
+        acq =  Acquisition(image_process_fn = self._image_process_fn, 
+                         post_hardware_hook_fn = self._post_hardware_hook)
+        # acq =  Acquisition(image_process_fn = self._image_process_fn)
+        acq.acquire(self.events)
 
 def main():
     acq = RunAcquisition()

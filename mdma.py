@@ -35,8 +35,8 @@ class mdma(QtWidgets.QMainWindow):
 
         #for development purposes
         self.initalProgram = [{'channels': [{'Group': 'Channel', 'Preset': 'DAPI', 'Exposure': '10'}], 'positions': [{'Position Label': 'Pos0', 'X': 0, 'Y': 0, 'Z': 0, 'XYStage': 'XY', 'ZStage': 'Z'}, {'Position Label': 'Pos1', 'X': 0, 'Y': 0, 'Z': 0, 'XYStage': 'XY', 'ZStage': 'Z'}], 'frames': [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]}, 
-                              {'channels': [{'Group': 'Channel', 'Preset': 'Cy5', 'Exposure': '10'}],  'positions': [{'Position Label': 'Pos0', 'X': 0, 'Y': 0, 'Z': 0, 'XYStage': 'XY', 'ZStage': 'Z'}, {'Position Label': 'Pos1', 'X': 0, 'Y': 0, 'Z': 0, 'XYStage': 'XY', 'ZStage': 'Z'}], 'frames': [0, 2, 4, 6, 8, 10]}, 
-                              {'channels': [{'Group': 'Channel', 'Preset': 'FITC', 'Exposure': '10'}], 'positions': [{'Position Label': 'Pos0', 'X': 0, 'Y': 0, 'Z': 0, 'XYStage': 'XY', 'ZStage': 'Z'}, {'Position Label': 'Pos1', 'X': 0, 'Y': 0, 'Z': 0, 'XYStage': 'XY', 'ZStage': 'Z'}], 'frames': [0, 3, 6, 9]}]
+                              {'channels': [{'Group': 'Channel', 'Preset': 'Cy5', 'Exposure': '10'}],  'positions': [{'Position Label': 'Pos0', 'X': 1, 'Y': 1, 'Z': 1, 'XYStage': 'XY', 'ZStage': 'Z'}, {'Position Label': 'Pos1', 'X': 0, 'Y': 0, 'Z': 0, 'XYStage': 'XY', 'ZStage': 'Z'}], 'frames': [0, 2, 4, 6, 8, 10]}, 
+                              {'channels': [{'Group': 'Channel', 'Preset': 'FITC', 'Exposure': '10'}], 'positions': [{'Position Label': 'Pos0', 'X': 2, 'Y': 2, 'Z': 0, 'XYStage': 'XY', 'ZStage': 'Z'}, {'Position Label': 'Pos1', 'X': 0, 'Y': 0, 'Z': 0, 'XYStage': 'XY', 'ZStage': 'Z'}], 'frames': [0, 3, 6, 9]}]
         self.ui.configurations = self.initalProgram
         #populate the list
         for conf in self.ui.configurations:
@@ -107,14 +107,12 @@ class mdma(QtWidgets.QMainWindow):
         for conf in self.ui.configurations:
             self.ui.listWidget_configs.addItem(self.print_configuration(conf))
 
-
     def duplicate_configuration(self):
         selected_preset = self.ui.listWidget_configs.currentRow()
         if  selected_preset == -1:
             return
         self.ui.configurations.append(copy.deepcopy(self.ui.configurations[selected_preset]))
         self.ui.listWidget_configs.addItem(self.print_configuration(self.ui.configurations[selected_preset]))
-
 
     def clear_configuration(self):
         #clear ALL configuratins
@@ -129,6 +127,7 @@ class mdma(QtWidgets.QMainWindow):
         self.ui.preview_list.setWindowTitle('Preview')
 
         #TODO write it in some decent format - position - channel - time > maybe best in a table?
+        
         for fnum, ev in enumerate(self.compile_experiment()):
             self.ui.preview_list.addItem(f"{fnum}, position: {ev['pos_label']} , channel: {ev['channel']['config']} , time: {ev['min_start_time']}s")
 
@@ -167,8 +166,6 @@ class mdma(QtWidgets.QMainWindow):
 
         total_time = max([t['min_start_time'] for t in run_events])
         self.ui.acquisitionDialog = acquisitionDialog.acquisitionDialog(total_time = total_time)
-        # self.ui.acquisition.exec()
-        #start the acquisition
         
     def update_positions(self):
         #I guess loop through every position in the self.configurations and change the x,y,.. to what is new,
