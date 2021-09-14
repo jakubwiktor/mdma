@@ -40,6 +40,11 @@ class run_acquisition:
         #add to multiprocessing queue phase image
         if self.events[im_num]['channel']['config'] == 'aphase':
             self.q.put((image, self.events[im_num]['save_location']))    
+
+            #hot-fix, save every 10th image
+            if self.events[im_num]['expected_acquire_time']%600 == 0:
+                io.imsave(self.events[im_num]['save_location'], image)
+                
         else:
             io.imsave(self.events[im_num]['save_location'], image)
         
@@ -119,7 +124,7 @@ class run_acquisition:
         from skimage import io, measure, morphology
 
         net = UNet(num_classes=1)
-        saved_model = 'C:\\Users\\kubus\\Documents\\trained_models\\Unet_mixed_brightnessAdj_Adam_HybridLoss_512px_cellsUnweighted.pth' #01.06.2021
+        saved_model = 'F:\\Jakub\\mdma-main\\Unet_mixed_brightnessAdj_Adam_HybridLoss_512px_cellsUnweighted.pth' #01.06.2021
         saved_net = torch.load(saved_model)
         net.load_state_dict(saved_net['model_state_dict'])
 
@@ -133,6 +138,9 @@ class run_acquisition:
             #segmentation core
             im, save_path = self.q.get()
 
+            #TODO - hotfix
+            save_path = save_path.replace('aphase', 'segmentation')
+            
             if im is None: #'poision pill'
                 self.check_segmentation_completed.value = True
                 break

@@ -150,10 +150,15 @@ class mdma(QtWidgets.QMainWindow):
             return
 
         run_events = self.compile_experiment(save_root=save_dir_name)
-
         #get dirs name and create folders at desired location
         save_paths = [os.path.dirname(x['save_location']) for x in run_events]
         save_paths = list(set(save_paths))
+        
+        #add segmentation folder - this is hack-fix
+        for p in save_paths:
+            if p.split('/')[-1] == 'aphase':
+                save_paths.append(p.replace('aphase','segmentation'))
+
         for savedir in save_paths:
             #if the directory already exitsts start overwriting it
             if not(os.path.exists(savedir)):
@@ -165,9 +170,9 @@ class mdma(QtWidgets.QMainWindow):
             os.remove(metadata_location)
             print('deleting metadata')
 
-        self.ui.acq = acquisition.run_acquisition(events = run_events, save_path = save_dir_name)
-        # self.ui.acq = rt_acquisition.run_acquisition(events = run_events, save_path = save_dir_name)
-        self.ui.acq._run()
+        # self.ui.acq = acquisition.run_acquisition(events = run_events, save_path = save_dir_name)
+        self.ui.acq = rt_acquisition.run_acquisition(events = run_events, save_path = save_dir_name)
+        # self.ui.acq._run()
 
         #display progress window - maybe move it to the RunAcquision
         # total_time = max([t['min_start_time'] for t in run_events])
