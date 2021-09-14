@@ -37,11 +37,11 @@ class run_acquisition:
         
         im_num = (metadata['Axes']['counter'])
 
-        #add to multiprocessing queue
-        
-        self.q.put((image, self.events[im_num]['save_location']))    
-
-        io.imsave(self.events[im_num]['save_location'], image)
+        #add to multiprocessing queue phase image
+        if self.events[im_num]['channel']['config'] == 'aphase':
+            self.q.put((image, self.events[im_num]['save_location']))    
+        else:
+            io.imsave(self.events[im_num]['save_location'], image)
         
         #update metadata - matadata is json with a format:
         #{"position":"Pos10",
@@ -137,11 +137,11 @@ class run_acquisition:
                 self.check_segmentation_completed.value = True
                 break
             
-            print(save_path)
-            path_chunks = save_path.split('/')
-            # path_chunks[-2] += 'segment'
-            path_chunks[-1] = f"seg{path_chunks[-1]}"
-            save_path = '//'.join(path_chunks) 
+            # print(save_path)
+            # path_chunks = save_path.split('/')
+            # # path_chunks[-2] += 'segment'
+            # path_chunks[-1] = f"seg{path_chunks[-1]}"
+            # save_path = '//'.join(path_chunks) 
 
             im = im.astype('float32')
 
