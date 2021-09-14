@@ -2,25 +2,33 @@
 from pycromanager import Acquisition, Bridge
 from skimage import io 
 import json
+import time
+from datetime import datetime
 
-# import matplotlib.pyplot as plt
+import acquisitionDialog
 
 #TODO: write a metadata file
-class RunAcquisition:
+class run_acquisition:
+
+    """running acqusition using pycromanager as a signle thread
+    
+    input: events - list of events as defined in pycromanager documentation
+
+    TODO-update documentation
+    """
 
     def __init__(self, events = None, save_path = ''):
         self.events = events
         self.save_path = save_path
-        
-    def _image_process_fn(self,image,metadata):
-       #image acquisition hook for pycromanager - saves file and metadata
+        self.check_abort = 0
 
-        in_num = (metadata['Axes']['counter'])
-       
-        #find back the correct frame!
-        print(self.events[in_num]['save_location'], self.events[in_num]['min_start_time'])
-        
-        io.imsave(self.events[in_num]['save_location'], image)
+    def _image_process_fn(self, image, metadata, bridge, event_queue):
+        #image acquisition hook for pycromanager - saves file and metadata
+
+        real_snap_time = int(time.time()*1000)
+        im_num = (metadata['Axes']['counter'])
+               
+        io.imsave(self.events[im_num]['save_location'], image)
         
         #update metadata - matadata is json with a format:
         #{"position":"Pos10",
@@ -34,10 +42,10 @@ class RunAcquisition:
         # "channel":"aphase",
         # "channel_group":"Fluor"}
 
-        tmp = self.events[in_num]
+        tmp = self.events[im_num]
         metadata_line = {
                          'position':tmp['pos_label'],
-                         'acquire_time':tmp['min_start_time'],
+                         'acquire_time':real_snap_time,
                          'exposure_time':tmp['exposure'],
                          'PosZ':tmp['z'],
                          'PosY':tmp['y'],
@@ -53,33 +61,48 @@ class RunAcquisition:
             f.write( json.dumps(metadata_line, separators =(',',':')) )
             f.write('\n')
 
+        #add events one by one
+        if im_num+1 == len(self.events):#remember that numbering starts from 0 - took me a while!
+            event_queue.put(None)
+            print('acq finished')
+        elif self.check_abort:
+            event_queue.put(None)            
+            print('acq aborted')
+        else:
+            print(im_num)
+            event_queue.put(self.events[im_num+1])
+            
         return image,metadata
 
     def _post_hardware_hook(self,event,bridge,event_queue):
-        #hook needs 1 or 3 parameters (plus 'self' because it's a class?)
-
-        #wait for focus here?
-        # with Bridge() as bridge:
+        #hook before image acquisition - wait for focus here
         core = bridge.get_core()
-        
         z_stage_name = core.get_focus_device()
         core.wait_for_device(z_stage_name)
-        print('post_hardware_hook')
+        # print('post_hardware_hook')
         return event
 
     def _pre_hardware_hook(self,event):
-        print('pre_hardware_hook')
+        #placeholder
         return event
 
+    def abort_acquisition(self,signal):
+        #wait for a signal form GUI window
+        self.check_abort = signal
+        
     def _run(self):
         
-        acq =  Acquisition(image_process_fn = self._image_process_fn, 
-                         post_hardware_hook_fn = self._post_hardware_hook)
-        # acq =  Acquisition(image_process_fn = self._image_process_fn)
-        acq.acquire(self.events)
+        #here acquisition needs to be stopped by adding 'None' to event_queue
+        acq =  Acquisition(image_process_fn = self._image_process_fn, post_hardware_hook_fn = self._post_hardware_hook)
+        acq.acquire(self.events[0])
+
+        #open GUI showing progress and adding aborting functionality        
+        total_time = max([t['min_start_time'] for t in self.events])
+        self.acquisitionDialog = acquisitionDialog.acquisitionDialog(total_time = total_time)
+        self.acquisitionDialog.abort_acq.connect(self.abort_acquisition)
 
 def main():
-    acq = RunAcquisition()
+    acq = run_acquisition()
     acq._run()
 
 if __name__ == '__main__':

@@ -1,13 +1,14 @@
 from PySide6 import QtWidgets, QtCore, QtGui
 from PySide6.QtUiTools import QUiLoader
 
-from pycromanager import Bridge
-
 import sys
 import time
-import os
+import math
 
 class acquisitionDialog(QtWidgets.QMainWindow):
+
+    abort_acq = QtCore.Signal(bool)
+
     def __init__(self, parent=None,  total_time=40):
         super(acquisitionDialog, self).__init__(parent)
                 
@@ -21,6 +22,8 @@ class acquisitionDialog(QtWidgets.QMainWindow):
         self.ui.worker.start()
 
         self.ui.pushButton_abort.clicked.connect(self.close_abort)
+        # self.ui.pushButton_abort.clicked.connect(self.closeEvent)
+
         self.ui.time_counter = 0
 
         #set time labels
@@ -51,10 +54,15 @@ class acquisitionDialog(QtWidgets.QMainWindow):
         self.ui.time_counter += 1
 
     def close_abort(self):
+        self.abort_acq.emit(True)
+        self.ui.close()
+        # bridge = Bridge()
+        # bridge.close()
     
-        bridge = Bridge()
-        bridge.close()
-    
+    # def closeEvent(self):
+    #     self.abort_acq.emit(1)
+        
+
 class Worker(QtCore.QThread):
 
     #This is the signal that will be emitted during the processing.
@@ -66,13 +74,14 @@ class Worker(QtCore.QThread):
     #nothing else needs to be done expect call the super's init
     def __init__(self, total_time=60):
         QtCore.QThread.__init__(self)
+        total_time = math.ceil(total_time) #<- prepare in case of fraction seconds
         self.total_time = total_time
         self.update_time = total_time/101
     
     #A QThread is run by calling it's start() function, which calls this run()
     #function in it's own "thread". 
     def run(self):
-        print(self.total_time)
+        # print(self.total_time)
         
         #Notice this is the same thing you were doing in your progress() function
         for i in range(0, self.total_time+1):

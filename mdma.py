@@ -10,8 +10,9 @@ import os
 from pycromanager import Bridge
 
 import add_configuration
+
 import acquisitionDialog
-from utils import acquisition
+from utils import acquisition, rt_acquisition
 
 #TODO - how to stop running acquisition?
 #Kuba
@@ -34,9 +35,9 @@ class mdma(QtWidgets.QMainWindow):
         self.ui.configurations = []
 
         #for development purposes
-        self.initalProgram = [{'channels': [{'Group': 'Channel', 'Preset': 'DAPI', 'Exposure': '10'}], 'positions': [{'Position Label': 'Pos0', 'X': 0, 'Y': 0, 'Z': 0, 'XYStage': 'XY', 'ZStage': 'Z'}, {'Position Label': 'Pos1', 'X': 0, 'Y': 0, 'Z': 0, 'XYStage': 'XY', 'ZStage': 'Z'}], 'frames': [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]}, 
-                              {'channels': [{'Group': 'Channel', 'Preset': 'Cy5', 'Exposure': '10'}],  'positions': [{'Position Label': 'Pos0', 'X': 1, 'Y': 1, 'Z': 1, 'XYStage': 'XY', 'ZStage': 'Z'}, {'Position Label': 'Pos1', 'X': 0, 'Y': 0, 'Z': 0, 'XYStage': 'XY', 'ZStage': 'Z'}], 'frames': [0, 2, 4, 6, 8, 10]}, 
-                              {'channels': [{'Group': 'Channel', 'Preset': 'FITC', 'Exposure': '10'}], 'positions': [{'Position Label': 'Pos0', 'X': 2, 'Y': 2, 'Z': 0, 'XYStage': 'XY', 'ZStage': 'Z'}, {'Position Label': 'Pos1', 'X': 0, 'Y': 0, 'Z': 0, 'XYStage': 'XY', 'ZStage': 'Z'}], 'frames': [0, 3, 6, 9]}]
+        self.initalProgram = [{'channels': [{'Group': 'Channel', 'Preset': 'DAPI', 'Exposure': '10'}], 'positions': [{'Position Label': 'Pos0', 'X': 0, 'Y': 0, 'Z': 0, 'XYStage': 'XY', 'ZStage': 'Z'}, {'Position Label': 'Pos1', 'X': 0, 'Y': 0, 'Z': 0, 'XYStage': 'XY', 'ZStage': 'Z'}], 'frames': [0,1,2,3,4,5,6,7,8,9,10]}]#, 
+                            #   {'channels': [{'Group': 'Channel', 'Preset': 'Cy5', 'Exposure': '10'}],  'positions': [{'Position Label': 'Pos0', 'X': 1, 'Y': 1, 'Z': 1, 'XYStage': 'XY', 'ZStage': 'Z'}, {'Position Label': 'Pos1', 'X': 0, 'Y': 0, 'Z': 0, 'XYStage': 'XY', 'ZStage': 'Z'}], 'frames': [0, 2]}, 
+                            #   {'channels': [{'Group': 'Channel', 'Preset': 'FITC', 'Exposure': '10'}], 'positions': [{'Position Label': 'Pos0', 'X': 2, 'Y': 2, 'Z': 0, 'XYStage': 'XY', 'ZStage': 'Z'}, {'Position Label': 'Pos1', 'X': 0, 'Y': 0, 'Z': 0, 'XYStage': 'XY', 'ZStage': 'Z'}], 'frames': [0, 3]}]
         self.ui.configurations = self.initalProgram
         #populate the list
         for conf in self.ui.configurations:
@@ -139,7 +140,10 @@ class mdma(QtWidgets.QMainWindow):
         #TODO - open a progress window
 
         #select/create a folder to save the acquisition and run
-        save_dir_name = QFileDialog.getExistingDirectory(self, "Select Directory")
+        # save_dir_name = QFileDialog.getExistingDirectory(self, "Select Directory")
+         
+        #overwrite for easier testing
+        save_dir_name = 'C:/Users/kubus/Documents/test'
 
         #if cancel was pressed
         if save_dir_name == '': 
@@ -161,11 +165,13 @@ class mdma(QtWidgets.QMainWindow):
             os.remove(metadata_location)
             print('deleting metadata')
 
-        self.ui.acq = acquisition.RunAcquisition(events = run_events, save_path = save_dir_name)
+        self.ui.acq = acquisition.run_acquisition(events = run_events, save_path = save_dir_name)
+        # self.ui.acq = rt_acquisition.run_acquisition(events = run_events, save_path = save_dir_name)
         self.ui.acq._run()
 
-        total_time = max([t['min_start_time'] for t in run_events])
-        self.ui.acquisitionDialog = acquisitionDialog.acquisitionDialog(total_time = total_time)
+        #display progress window - maybe move it to the RunAcquision
+        # total_time = max([t['min_start_time'] for t in run_events])
+        # self.ui.acquisitionDialog = acquisitionDialog.acquisitionDialog(total_time = total_time)
         
     def update_positions(self):
         #I guess loop through every position in the self.configurations and change the x,y,.. to what is new,
@@ -267,8 +273,8 @@ class mdma(QtWidgets.QMainWindow):
 
         #cath the closing behavior - this also kills the acquisition
         #somehow def closeEvent(self, event) wont work here -> self.ui. is a problem?
-        if event.type() == QtCore.QEvent.Type.Hide:
-            os._exit(1)
+        # if event.type() == QtCore.QEvent.Type.Hide:
+        #     os._exit(1)
 
         return super().eventFilter(source,event) #i dont know what this does? return False could work too
 
