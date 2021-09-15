@@ -77,9 +77,7 @@ class run_acquisition:
     def _post_hardware_hook(self,event,bridge,event_queue):
         #hook before image acquisition - wait for focus here
         core = bridge.get_core()
-        z_stage_name = core.get_focus_device()
-        core.wait_for_device(z_stage_name)
-        # print('post_hardware_hook')
+        core.full_focus() #should be PFSOffset
         return event
 
     def _pre_hardware_hook(self,event):
