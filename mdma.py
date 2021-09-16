@@ -140,10 +140,10 @@ class mdma(QtWidgets.QMainWindow):
         #TODO - open a progress window
 
         #select/create a folder to save the acquisition and run
-        # save_dir_name = QFileDialog.getExistingDirectory(self, "Select Directory")
+        save_dir_name = QFileDialog.getExistingDirectory(self, "Select Directory")
          
         #overwrite for easier testing
-        save_dir_name = 'C:/Users/kubus/Documents/test'
+        # save_dir_name = 'C:/Users/kubus/Documents/test'
 
         #if cancel was pressed
         if save_dir_name == '': 
@@ -170,13 +170,11 @@ class mdma(QtWidgets.QMainWindow):
             os.remove(metadata_location)
             print('deleting metadata')
 
+        for event in run_events:
+            print(event)
         # self.ui.acq = acquisition.run_acquisition(events = run_events, save_path = save_dir_name)
         self.ui.acq = rt_acquisition.run_acquisition(events = run_events, save_path = save_dir_name)
         # self.ui.acq._run()
-
-        #display progress window - maybe move it to the RunAcquision
-        # total_time = max([t['min_start_time'] for t in run_events])
-        # self.ui.acquisitionDialog = acquisitionDialog.acquisitionDialog(total_time = total_time)
         
     def update_positions(self):
         #I guess loop through every position in the self.configurations and change the x,y,.. to what is new,
@@ -255,7 +253,7 @@ class mdma(QtWidgets.QMainWindow):
         for ie, _ in enumerate(sorted_events):
             sorted_events[ie]['axes']['counter'] = ie
 
-        return(sorted_events)
+        return sorted_events
 
     def eventFilter(self,source,event):
         #filetring events, i can catch the closing event here too

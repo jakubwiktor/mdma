@@ -19,10 +19,10 @@ class acquisitionDialog(QtWidgets.QMainWindow):
         self.ui.total_time = total_time
         self.ui.worker = Worker(total_time=self.ui.total_time)
         self.ui.worker.updateProgress.connect(self.setProgress)
+        self.ui.worker.time_finished.connect(self.closeGUI)
         self.ui.worker.start()
 
         self.ui.pushButton_abort.clicked.connect(self.close_abort)
-        # self.ui.pushButton_abort.clicked.connect(self.closeEvent)
 
         self.ui.time_counter = 0
 
@@ -53,15 +53,13 @@ class acquisitionDialog(QtWidgets.QMainWindow):
         self.ui.label_time_passed.setText(total_time_hms)
         self.ui.time_counter += 1
 
+    def closeGUI(self, signal):
+        if signal:
+            self.ui.close()
+
     def close_abort(self):
         self.abort_acq.emit(True)
         self.ui.close()
-        # bridge = Bridge()
-        # bridge.close()
-    
-    # def closeEvent(self):
-    #     self.abort_acq.emit(1)
-        
 
 class Worker(QtCore.QThread):
 
@@ -69,6 +67,7 @@ class Worker(QtCore.QThread):
     #By including int as an argument, it lets the signal know to expect
     #an integer argument when emitting.
     updateProgress = QtCore.Signal(int)
+    time_finished = QtCore.Signal(bool)
 
     #You can do any extra things in this init you need, but for this example
     #nothing else needs to be done expect call the super's init
@@ -89,6 +88,8 @@ class Worker(QtCore.QThread):
             time_element = (100/self.total_time)*i
             self.updateProgress.emit(time_element)
             time.sleep(1)
+
+        self.time_finished.emit(True)
 
 def main():
 

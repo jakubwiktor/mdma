@@ -22,14 +22,12 @@ class run_acquisition:
     def __init__(self, events = None, save_path = '', q = None):
         self.events = events
         self.save_path = save_path
+        #initialise shared values
         self.check_abort = Value('b',False) # <- shared between processes
         self.check_segmentation_completed = Value('b',False)
-
         #initialise shared queue
         self.q = Queue()
         
-        #initialise pytorch .. pick up from here
-
     def _image_process_fn(self, image, metadata, bridge, event_queue):
        #image acquisition hook for pycromanager - saves file and metadata
         
@@ -39,14 +37,14 @@ class run_acquisition:
 
         #add to multiprocessing queue phase image
         if self.events[im_num]['channel']['config'] == 'aphase':
-            self.q.put((image, self.events[im_num]['save_location']))    
+            seg_save_path = self.events[im_num]['save_location'].replace('aphase', 'segmentation')
+            self.q.put((image, seg_save_path))    
 
             #hot-fix, save every 10th image
-            if self.events[im_num]['expected_acquire_time']%600 == 0:
+            if self.events[im_num]['min_start_time']%600 == 0:
                 io.imsave(self.events[im_num]['save_location'], image)
-                
         else:
-            io.imsave(self.events[im_num]['save_location'], image)
+            io.imsave(self.events[im_num]['save_location'], image, check_contrast=False)
         
         #update metadata - matadata is json with a format:
         #{"position":"Pos10",
@@ -73,6 +71,7 @@ class run_acquisition:
                          'channel':tmp['channel']['group'],
                          'channel_group':tmp['channel']['config']
                         }
+
         metadata_line['filename'] = metadata_line['filename'].replace('/','//') #<- to match ritaaquire
 
         with open(f"{self.save_path}/metadata.txt", 'a') as f:
@@ -122,7 +121,8 @@ class run_acquisition:
         from skimage import io, measure, morphology
 
         net = UNet(num_classes=1)
-        saved_model = 'F:\\Jakub\\mdma-main\\Unet_mixed_brightnessAdj_Adam_HybridLoss_512px_cellsUnweighted.pth' #01.06.2021
+        # saved_model = 'F:\\Jakub\\mdma-main\\Unet_mixed_brightnessAdj_Adam_HybridLoss_512px_cellsUnweighted.pth' #01.06.2021
+        saved_model = 'C:\\Users\\kubus\\Documents\\trained_models\\Unet_mixed_brightnessAdj_Adam_HybridLoss_512px_cellsUnweighted.pth' #01.06.2021
         saved_net = torch.load(saved_model)
         net.load_state_dict(saved_net['model_state_dict'])
 
@@ -131,23 +131,15 @@ class run_acquisition:
         #this is function called by other process
         #is this possible to run the pytorch here?
         # import torch etc
-        counter = 0
         while True:
+            
             #segmentation core
             im, save_path = self.q.get()
-
-            #TODO - hotfix
-            save_path = save_path.replace('aphase', 'segmentation')
             
             if im is None: #'poision pill'
                 self.check_segmentation_completed.value = True
+                print('segmentation completed')
                 break
-            
-            # print(save_path)
-            # path_chunks = save_path.split('/')
-            # # path_chunks[-2] += 'segment'
-            # path_chunks[-1] = f"seg{path_chunks[-1]}"
-            # save_path = '//'.join(path_chunks) 
 
             im = im.astype('float32')
 

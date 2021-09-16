@@ -28,7 +28,7 @@ class run_acquisition:
         real_snap_time = int(time.time()*1000)
         im_num = (metadata['Axes']['counter'])
                
-        io.imsave(self.events[im_num]['save_location'], image)
+        io.imsave(self.events[im_num]['save_location'], image, check_contrast=False)
         
         #update metadata - matadata is json with a format:
         #{"position":"Pos10",
@@ -69,7 +69,6 @@ class run_acquisition:
             event_queue.put(None)            
             print('acq aborted')
         else:
-            print(im_num)
             event_queue.put(self.events[im_num+1])
             
         return image,metadata
