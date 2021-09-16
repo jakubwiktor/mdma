@@ -33,12 +33,11 @@ class run_acquisition:
     def _image_process_fn(self, image, metadata, bridge, event_queue):
         #image acquisition hook for pycromanager - saves file and metadata
         
+        real_snap_time = int(time.time()*1000)
+
         #update image counter
         im_num = self.counter
         self.counter+=1
-        
-        real_snap_time = int(time.time()*1000)
-        
         # im_num = (metadata['Axes']['counter']) #could be replaced with 'self.counter'
         
         # print(f"{im_num}/{len(self.events)}")

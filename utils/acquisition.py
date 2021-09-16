@@ -21,12 +21,18 @@ class run_acquisition:
         self.events = events
         self.save_path = save_path
         self.check_abort = 0
+        self.counter = 0
 
     def _image_process_fn(self, image, metadata, bridge, event_queue):
         #image acquisition hook for pycromanager - saves file and metadata
 
+        
         real_snap_time = int(time.time()*1000)
-        im_num = (metadata['Axes']['counter'])
+        
+        im_num = self.counter 
+        self.counter += 1
+
+        #im_num = (metadata['Axes']['counter'])
                
         io.imsave(self.events[im_num]['save_location'], image, check_contrast=False)
         
@@ -90,7 +96,7 @@ class run_acquisition:
     def _run(self):
         
         #here acquisition needs to be stopped by adding 'None' to event_queue
-        acq =  Acquisition(image_process_fn = self._image_process_fn, post_hardware_hook_fn = self._post_hardware_hook)
+        acq = Acquisition(image_process_fn = self._image_process_fn, post_hardware_hook_fn = self._post_hardware_hook)
         acq.acquire(self.events[0])
 
         #open GUI showing progress and adding aborting functionality        
