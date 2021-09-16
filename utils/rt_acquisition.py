@@ -21,19 +21,28 @@ class run_acquisition:
 
     def __init__(self, events = None, save_path = '', q = None):
         self.events = events
+        self.tot_images = len(events)
         self.save_path = save_path
         #initialise shared values
         self.check_abort = Value('b',False) # <- shared between processes
         self.check_segmentation_completed = Value('b',False)
         #initialise shared queue
         self.q = Queue()
+        self.counter = 0
         
     def _image_process_fn(self, image, metadata, bridge, event_queue):
-       #image acquisition hook for pycromanager - saves file and metadata
+        #image acquisition hook for pycromanager - saves file and metadata
+        
+        #update image counter
+        im_num = self.counter
+        self.counter+=1
         
         real_snap_time = int(time.time()*1000)
         
-        im_num = (metadata['Axes']['counter'])
+        # im_num = (metadata['Axes']['counter']) #could be replaced with 'self.counter'
+        
+        # print(f"{im_num}/{len(self.events)}")
+        print(self.events[im_num+1])
 
         #add to multiprocessing queue phase image
         if self.events[im_num]['channel']['config'] == 'aphase':
@@ -44,6 +53,7 @@ class run_acquisition:
             if self.events[im_num]['min_start_time']%600 == 0:
                 io.imsave(self.events[im_num]['save_location'], image)
         else:
+            pass
             io.imsave(self.events[im_num]['save_location'], image, check_contrast=False)
         
         #update metadata - matadata is json with a format:
@@ -94,10 +104,9 @@ class run_acquisition:
                 time.sleep(0.1)
 
         else:
-            # print(im_num)
             event_queue.put(self.events[im_num+1])
         
-        return image,metadata
+        # return image,metadata
 
     def _post_hardware_hook(self,event,bridge,event_queue):
         #hook before image acquisition - wait for focus here
@@ -121,18 +130,14 @@ class run_acquisition:
         from skimage import io, measure, morphology
 
         net = UNet(num_classes=1)
-        # saved_model = 'F:\\Jakub\\mdma-main\\Unet_mixed_brightnessAdj_Adam_HybridLoss_512px_cellsUnweighted.pth' #01.06.2021
-        saved_model = 'C:\\Users\\kubus\\Documents\\trained_models\\Unet_mixed_brightnessAdj_Adam_HybridLoss_512px_cellsUnweighted.pth' #01.06.2021
+        saved_model = 'F:\\Jakub\\mdma-main\\Unet_mixed_brightnessAdj_Adam_HybridLoss_512px_cellsUnweighted.pth' #01.06.2021
+
         saved_net = torch.load(saved_model)
         net.load_state_dict(saved_net['model_state_dict'])
 
         net.cuda()
 
-        #this is function called by other process
-        #is this possible to run the pytorch here?
-        # import torch etc
         while True:
-            
             #segmentation core
             im, save_path = self.q.get()
             
@@ -173,8 +178,8 @@ class run_acquisition:
 
     def _run(self):
         
-        p = Process(target=self._runAcq, args=())
-        p.start()
+        p1 = Process(target=self._runAcq, args=())
+        p1.start()
 
         p2 = Process(target=self.segment_realTime, args=())
         p2.start()

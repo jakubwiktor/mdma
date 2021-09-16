@@ -170,11 +170,9 @@ class mdma(QtWidgets.QMainWindow):
             os.remove(metadata_location)
             print('deleting metadata')
 
-        for event in run_events:
-            print(event)
         # self.ui.acq = acquisition.run_acquisition(events = run_events, save_path = save_dir_name)
         self.ui.acq = rt_acquisition.run_acquisition(events = run_events, save_path = save_dir_name)
-        # self.ui.acq._run()
+        self.ui.acq._run()
         
     def update_positions(self):
         #I guess loop through every position in the self.configurations and change the x,y,.. to what is new,
@@ -250,8 +248,8 @@ class mdma(QtWidgets.QMainWindow):
 
         sorted_events = sorted(events, key = lambda i: (i['min_start_time'], i['axes']['position'])) #imgetter wont work because position sits withing dictinary 'axes'
 
-        for ie, _ in enumerate(sorted_events):
-            sorted_events[ie]['axes']['counter'] = ie
+        # for ie, _ in enumerate(sorted_events):
+        #     sorted_events[ie]['axes']['counter'] = ie
 
         return sorted_events
 
