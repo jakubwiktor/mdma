@@ -14,8 +14,10 @@ import add_configuration
 import acquisitionDialog
 from utils import acquisition, rt_acquisition
 
-#TODO - how to stop running acquisition?
-#Kuba
+#needed packages: 
+#pip install opencv-python
+#pip install pycromanager
+#pytorch
 
 class mdma(QtWidgets.QMainWindow):
     def __init__(self, parent=None):
