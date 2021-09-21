@@ -114,7 +114,7 @@ class run_acquisition:
         else:
             pass
             # io.imsave(self.events[im_num]['save_location'], image, check_contrast=False)
-            cv.imwrite(self.events[im_num]['save_location'], image) # i dont know if it handles compression
+            cv.imwrite(self.events[im_num]['save_location'], image) #i think by defalt it uses compression. 
         
         #update metadata - matadata is json with a format:
         #{"position":"Pos10",
