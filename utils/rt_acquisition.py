@@ -13,8 +13,8 @@ import acquisitionDialog
 from utils.barcode_code import find_barcode_region, match_barcode
 
 class run_acquisition:
-
-    """running acqusition using pycromanager as with real-time segmentation
+    """
+    running acqusition using pycromanager as with real-time segmentation
     
     input: events - list of events as defined in pycromanager documentation
 
@@ -46,7 +46,6 @@ class run_acquisition:
 
     def _image_process_fn(self, image, metadata, bridge, event_queue):
         """
-        
         update documentation
         TODO: check if the images are acquired as expected - check if im_num and self.counter
         interact as intended
@@ -94,12 +93,13 @@ class run_acquisition:
             
             cv.imwrite(barcode_save_path, b_image)
 
-            barcode_loc_string = f"{barcode_save_path},{top_left},{bottom_right}"
+            barcode_loc = dict()
+            barcode_loc['file'] = barcode_save_path
+            barcode_loc['pos'] = top_left[0]
             
             with open(f"{self.save_path}/barcode_locations.txt", 'a') as f:
-                f.write(barcode_loc_string)
+                f.write(json.dumps(barcode_loc, separators=(',',':')))
                 f.write('\n')
-            
             #
             #end of barcode testing
             #
@@ -110,7 +110,7 @@ class run_acquisition:
             #hot-fix, save every 10th image
             if self.events[im_num]['min_start_time']%600 == 0:
                 # io.imsave(self.events[im_num]['save_location'], image)
-                cv.imwrite(self.events[im_num]['save_location'], image)
+                cv.imwrite(self.events[im_num]['save_location'], image) #flag is IMWRITE_TIFF_COMPRESSION + number - refer to libtiff for integer constants for compression
         else:
             pass
             # io.imsave(self.events[im_num]['save_location'], image, check_contrast=False)
@@ -193,7 +193,7 @@ class run_acquisition:
         import torch
         from utils.UnetPlusPlus2 import UNet
         import numpy as np
-        from skimage import io, measure, morphology
+        # from skimage import io, measure, morphology
 
         net = UNet(num_classes=1)
         saved_model = 'F:\\Jakub\\mdma-main\\Unet_mixed_brightnessAdj_Adam_HybridLoss_512px_cellsUnweighted.pth' #01.06.2021
@@ -245,7 +245,6 @@ class run_acquisition:
         acq.acquire(self.events[0])
 
     def _run(self):
-        
         p1 = Process(target=self._runAcq, args=())
         p1.start()
 

@@ -54,12 +54,12 @@ def find_barcode_region(img):
 
     #filter detections at the edges of the image
     im_height = int(np.floor(img.shape[0])) #'y' coordinates
-    im_width = int(np.floor(img.shape[1])) #'y' coordinates
+    im_width = int(np.floor(img.shape[1])) #'x' coordinates
     keep_rectangles = []
     for (x,y,w,h) in rectangles:
-        if y > im_height*0.2 and y < im_height*0.8 and x > im_width*0.2 and x < im_width*0.8:
-            keep_rectangles.append(np.array([x,y,w/2,h/2])) #needed for cv2.groupRectangles. Shrinking rectangles helps too.
-            keep_rectangles.append(np.array([x,y,w/2,h/2])) #and for some reason it needs to be doubled
+            if y > im_height*0.2 and y < im_height*0.8 and x > im_width*0.05 and x < im_width*0.95:
+                keep_rectangles.append(np.array([x,y,w/2,h/2])) #needed for cv2.groupRectangles. Shrinking rectangles helps too.
+                keep_rectangles.append(np.array([x,y,w/2,h/2])) #and for some reason it needs to be doubled
 
     #group rectangles with cv.groupRectangles
     rectangles,_ = cv.groupRectangles(keep_rectangles, 1, 2)
@@ -107,11 +107,10 @@ def find_barcode_region(img):
     # print(pk_pos)
     # print(pk_size) # <- maybe get 3 biggest peaks
 
-    #use the strongest peak
+    #use the strongest peak 
+    #TODO - also find the most center one
     main_pk = int(pk_pos[np.argmax(pk_size)])
     barcode_loc = [main_pk-20,main_pk+30,int(np.floor(img.shape[0]*0.2)),int(np.floor(img.shape[0]*0.8))] #somehowh main_pk is moved to the left
-
-
     barcode_im = img[barcode_loc[2]:barcode_loc[3],barcode_loc[0]:barcode_loc[1]]
     
     return barcode_im
@@ -165,15 +164,19 @@ def main():
     
     for p in plist:
         image_name = 'C:\\Users\\kubus\\Documents\\exp5\\' + p + '\\aphase\\img_000000000.tiff'
+        # image_name = 'C:\\Users\\kubus\\Documents\\test_unet\\img_000000003.tiff'
+
         img = cv.imread(image_name,cv.IMREAD_ANYDEPTH)
         barcode_img = find_barcode_region(img)
     
         if barcode_img is not None:
             top_left, bottom_right = match_barcode(img, barcode_img)
             b_image = img[top_left[1]:bottom_right[1],top_left[0]:bottom_right[0]]
-            cv.imshow('barcode',b_image)
+            output = img.copy()
+            output = (output/256).astype('uint8')
+            output = cv.rectangle(output,top_left,bottom_right,(255,255,255), 5)
+            cv.imshow('barcode',output)
             cv.waitKey(0)
-    
 
 if __name__ == '__main__':
     main()
