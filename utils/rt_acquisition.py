@@ -193,7 +193,7 @@ class run_acquisition:
         import torch
         from utils.UnetPlusPlus2 import UNet
         import numpy as np
-        # from skimage import io, measure, morphology
+        from skimage import io, measure, morphology
 
         net = UNet(num_classes=1)
         saved_model = 'F:\\Jakub\\mdma-main\\Unet_mixed_brightnessAdj_Adam_HybridLoss_512px_cellsUnweighted.pth' #01.06.2021
