@@ -37,9 +37,9 @@ class mdma(QtWidgets.QMainWindow):
         self.ui.configurations = []
 
         #for development purposes
-        self.initalProgram = [{'channels': [{'Group': 'Channel', 'Preset': 'DAPI', 'Exposure': '10'}], 'positions': [{'Position Label': 'Pos0', 'X': 0, 'Y': 0, 'Z': 0, 'XYStage': 'XY', 'ZStage': 'Z'}, {'Position Label': 'Pos1', 'X': 0, 'Y': 0, 'Z': 0, 'XYStage': 'XY', 'ZStage': 'Z'}], 'frames': [0,1,2,3,4,5,6,7,8,9,10]}]#, 
-                            #   {'channels': [{'Group': 'Channel', 'Preset': 'Cy5', 'Exposure': '10'}],  'positions': [{'Position Label': 'Pos0', 'X': 1, 'Y': 1, 'Z': 1, 'XYStage': 'XY', 'ZStage': 'Z'}, {'Position Label': 'Pos1', 'X': 0, 'Y': 0, 'Z': 0, 'XYStage': 'XY', 'ZStage': 'Z'}], 'frames': [0, 2]}, 
-                            #   {'channels': [{'Group': 'Channel', 'Preset': 'FITC', 'Exposure': '10'}], 'positions': [{'Position Label': 'Pos0', 'X': 2, 'Y': 2, 'Z': 0, 'XYStage': 'XY', 'ZStage': 'Z'}, {'Position Label': 'Pos1', 'X': 0, 'Y': 0, 'Z': 0, 'XYStage': 'XY', 'ZStage': 'Z'}], 'frames': [0, 3]}]
+        self.initalProgram  = [{'channels': [{'Group': 'Channel', 'Preset': 'Cy5', 'Exposure': 100}], 'positions': [{'Position Label': 'Pos0', 'X': 0, 'Y': 0, 'Z': 0, 'XYStage': 'XY', 'ZStage': 'Z'}, {'Position Label': 'Pos1', 'X': 0, 'Y': 0, 'Z': 0, 'XYStage': 'XY', 'ZStage': 'Z'}, {'Position Label': 'Pos2', 'X': 0, 'Y': 0, 'Z': 0, 'XYStage': 'XY', 'ZStage': 'Z'}, {'Position Label': 'Pos3', 'X': 0, 'Y': 0, 'Z': 0, 'XYStage': 'XY', 'ZStage': 'Z'}, {'Position Label': 'Pos4', 'X': 0, 'Y': 0, 'Z': 0, 'XYStage': 'XY', 'ZStage': 'Z'}, {'Position Label': 'Pos5', 'X': 0, 'Y': 0, 'Z': 0, 'XYStage': 'XY', 'ZStage': 'Z'}, {'Position Label': 'Pos6', 'X': 0, 'Y': 0, 'Z': 0, 'XYStage': 'XY', 'ZStage': 'Z'}, {'Position Label': 'Pos7', 'X': 0, 'Y': 0, 'Z': 0, 'XYStage': 'XY', 'ZStage': 'Z'}, {'Position Label': 'Pos8', 'X': 0, 'Y': 0, 'Z': 0, 'XYStage': 'XY', 'ZStage': 'Z'}, {'Position Label': 'Pos9', 'X': 0, 'Y': 0, 'Z': 0, 'XYStage': 'XY', 'ZStage': 'Z'}, {'Position Label': 'Pos10', 'X': 0, 'Y': 0, 'Z': 0, 'XYStage': 'XY', 'ZStage': 'Z'}, {'Position Label': 'Pos11', 'X': 0, 'Y': 0, 'Z': 0, 'XYStage': 'XY', 'ZStage': 'Z'}], 'frames': [0, 600, 1200, 1800, 2400, 
+                                3000]}, {'channels': [{'Group': 'Objective', 'Preset': '10X', 'Exposure': 100}], 'positions': [{'Position Label': 'Pos6', 'X': 0, 'Y': 0, 'Z': 0, 'XYStage': 'XY', 'ZStage': 'Z'}, {'Position Label': 'Pos7', 'X': 0, 'Y': 0, 'Z': 0, 'XYStage': 'XY', 'ZStage': 'Z'}, {'Position Label': 'Pos8', 'X': 0, 'Y': 0, 
+                                'Z': 0, 'XYStage': 'XY', 'ZStage': 'Z'}, {'Position Label': 'Pos9', 'X': 0, 'Y': 0, 'Z': 0, 'XYStage': 'XY', 'ZStage': 'Z'}, {'Position Label': 'Pos10', 'X': 0, 'Y': 0, 'Z': 0, 'XYStage': 'XY', 'ZStage': 'Z'}, {'Position Label': 'Pos11', 'X': 0, 'Y': 0, 'Z': 0, 'XYStage': 'XY', 'ZStage': 'Z'}], 'frames': [0, 1800]}]      
         self.ui.configurations = self.initalProgram
         #populate the list
         for conf in self.ui.configurations:
@@ -130,14 +130,12 @@ class mdma(QtWidgets.QMainWindow):
         self.ui.preview_list.setWindowTitle('Preview')
 
         #TODO write it in some decent format - position - channel - time > maybe best in a table?
-        
         for fnum, ev in enumerate(self.compile_experiment()):
-            self.ui.preview_list.addItem(f"{fnum}, position: {ev['pos_label']} , channel: {ev['channel']['config']} , time: {ev['min_start_time']}s")
-
+            self.ui.preview_list.addItem(f"time: {ev['min_start_time']}s, position: {ev['pos_label']} , channel: {ev['channel']['config']}, No: {fnum}")
+        
         self.ui.preview_list.show()
 
     def RUN(self):
-
         #TODO - !!! break the acquisiton when the window is closed !!!
         #TODO - open a progress window
 
@@ -175,7 +173,7 @@ class mdma(QtWidgets.QMainWindow):
         # self.ui.acq = acquisition.run_acquisition(events = run_events, save_path = save_dir_name)
         self.ui.acq = rt_acquisition.run_acquisition(events = run_events, save_path = save_dir_name)
         self.ui.acq._run()
-        
+
     def update_positions(self):
         #I guess loop through every position in the self.configurations and change the x,y,.. to what is new,
         #First check if the positions match, otherwise bail out!
@@ -223,17 +221,22 @@ class mdma(QtWidgets.QMainWindow):
         #               ['OtherDeviceName', 'OtherPropertyName', 'OtherPropertyValue']],
         #   }
 
+        #TODO - compile to make the positions go in order from Pos0 - PosXX
+        #test = ['Pos11','Pos10','Pos0','Pos100']
+        #out = [''.join(filter(str.isdigit, t)) for t in test]
+        #out.sort(key=int)
+        #print(out)
+
         events = []
-        save_pathway = None
-        counter = 0
         for config in self.ui.configurations:
             for time_counter, time_value in enumerate(config['frames']):
                 for position_index, position in enumerate(config['positions']):
                     for channel in config['channels']:
                         
                         save_path = f"{save_root}/{position['Position Label']}/{channel['Preset']}/img_{time_counter:09d}.tiff"
-                        
-                        event = {'axes':{'position': position_index},
+                        pnumber = int(''.join(filter(str.isdigit, position['Position Label']))) # cuts the 'Pos' part of 'PosXXX' naming and uses only integer for sorting
+
+                        event = {'axes':{'position': pnumber},
                                 'channel': {'group': channel['Group'], 'config': channel['Preset']},
                                 'exposure': int(channel['Exposure']),
                                 'z': position['Z'],
@@ -244,15 +247,10 @@ class mdma(QtWidgets.QMainWindow):
                                 'save_location': save_path
                                 }
                         
-                        counter += 1
-                        
                         events.append(event)
 
-        sorted_events = sorted(events, key = lambda i: (i['min_start_time'], i['axes']['position'])) #imgetter wont work because position sits withing dictinary 'axes'
-
-        # for ie, _ in enumerate(sorted_events):
-        #     sorted_events[ie]['axes']['counter'] = ie
-
+        sorted_events = sorted(events, key = lambda i: (i['min_start_time'], i['axes']['position'])) #wont work because position sits withing dictinary 'axes'
+        
         return sorted_events
 
     def eventFilter(self,source,event):
