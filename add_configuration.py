@@ -52,8 +52,11 @@ class add_configuration(QtWidgets.QDialog):
         
         #set custom context menu for channel table <- i guess that is not needed anymore - 2021.sep.08
         # self.ui.tableWidget_channels.setContextMenuPolicy(QtCore.Qt.CustomContextMenu) 
-       
-        #positions
+
+        #allow for multiple selection in the QListWidget
+        self.ui.listWidget_positionList.setSelectionMode(QtWidgets.QAbstractItemView.ExtendedSelection)   
+        
+        #positions buttons
         self.ui.pushButton_addPos.clicked.connect(self.add_positions_list)
         self.ui.pushButton_clearPos.clicked.connect(self.clear_position_list)
         self.ui.pushButton_removePos.clicked.connect(self.remove_position_from_list)
@@ -261,11 +264,19 @@ class add_configuration(QtWidgets.QDialog):
 
 
     def remove_position_from_list(self):
+        #working with selection of multiple events 
+        
         position_presets_selected = self.ui.listWidget_positionList.currentRow()
         if  position_presets_selected == -1: #if none selected then it returns -1
             return
-
-        del self.ui.positions[position_presets_selected]
+        
+        selected_items = self.ui.listWidget_positionList.selectedIndexes()
+        rows_to_delete = []
+        for item in selected_items:
+            rows_to_delete.append(item.row())
+        
+        #remake list, 'del' won't work on a mutliple selection - list is modified and poitners dont match
+        self.ui.positions = [pos for x,pos in enumerate(self.ui.positions) if x not in rows_to_delete]
         
         #update list widget
         self.ui.listWidget_positionList.clear()
