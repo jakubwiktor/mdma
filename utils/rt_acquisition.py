@@ -95,7 +95,7 @@ class run_acquisition:
 
             barcode_loc = dict()
             barcode_loc['file'] = barcode_save_path
-            barcode_loc['pos'] = top_left[0]
+            barcode_loc['pos'] = top_left
             
             with open(f"{self.save_path}/barcode_locations.txt", 'a') as f:
                 f.write(json.dumps(barcode_loc, separators=(',',':')))
