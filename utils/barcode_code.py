@@ -163,7 +163,8 @@ def main():
     plist = [f"Pos{x}" for x in range(20)]
     
     for p in plist:
-        image_name = 'C:\\Users\\kubus\\Documents\\exp5\\' + p + '\\aphase\\img_000000000.tiff'
+        image_name = 'C:\\Users\\kubus\\Documents\\EXP-21-BV3242 liveRuns\\exp6\\' + p + '\\aphase\\img_000000000.tiff'
+        print(image_name)
         # image_name = 'C:\\Users\\kubus\\Documents\\test_unet\\img_000000003.tiff'
 
         img = cv.imread(image_name,cv.IMREAD_ANYDEPTH)

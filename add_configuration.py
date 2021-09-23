@@ -61,6 +61,10 @@ class add_configuration(QtWidgets.QDialog):
         self.ui.pushButton_clearPos.clicked.connect(self.clear_position_list)
         self.ui.pushButton_removePos.clicked.connect(self.remove_position_from_list)
       
+
+        #allow for multiple selection in the QListWidget
+        self.ui.listWidget_timePoints.setSelectionMode(QtWidgets.QAbstractItemView.ExtendedSelection)   
+
         #timelapse
         self.ui.pushButton_addTime.clicked.connect(self.add_timelapse)
         self.ui.pushButton_clearTime.clicked.connect(self.clear_timelapse)
@@ -334,8 +338,14 @@ class add_configuration(QtWidgets.QDialog):
         if  frame_selected == -1: #if none selected then it returns -1
             return
 
-        del self.ui.frames[frame_selected]
-        
+        selected_items = self.ui.listWidget_timePoints.selectedIndexes()
+        rows_to_delete = []
+        for item in selected_items:
+            rows_to_delete.append(item.row())
+
+        #remake list, 'del' won't work on a mutliple selection - list is modified and poitners dont match
+        self.ui.frames = [data for x, data in enumerate(self.ui.frames) if x not in rows_to_delete]
+
         #update list widget
         self.ui.listWidget_timePoints.clear()
         for frame_number, frame in enumerate(self.ui.frames):
