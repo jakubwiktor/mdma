@@ -1,6 +1,6 @@
 #acquisition stuff
 from pycromanager import Acquisition, Bridge
-# from skimage import io 
+from skimage import io 
 import cv2 as cv
 import json
 import time
@@ -91,7 +91,7 @@ class run_acquisition:
             if not(os.path.exists(os.path.split(barcode_save_path)[0])):
                 os.makedirs(os.path.split(barcode_save_path)[0])
             
-            cv.imwrite(barcode_save_path, b_image)
+            io.imwrite(barcode_save_path, b_image)
 
             barcode_loc = dict()
             barcode_loc['file'] = barcode_save_path

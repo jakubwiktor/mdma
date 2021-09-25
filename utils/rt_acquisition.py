@@ -1,6 +1,6 @@
 #acquisition stuff
 from pycromanager import Acquisition, Bridge
-# from skimage import io 
+from skimage import io 
 import cv2 as cv
 import json
 import time
@@ -91,7 +91,7 @@ class run_acquisition:
             if not(os.path.exists(os.path.split(barcode_save_path)[0])):
                 os.makedirs(os.path.split(barcode_save_path)[0])
             
-            cv.imwrite(barcode_save_path, b_image)
+            io.imwrite(barcode_save_path, b_image)
 
             barcode_loc = dict()
             barcode_loc['file'] = barcode_save_path
@@ -109,8 +109,8 @@ class run_acquisition:
 
             #hot-fix, save every 10th image
             if self.events[im_num]['min_start_time']%600 == 0:
-                # io.imsave(self.events[im_num]['save_location'], image)
-                cv.imwrite(self.events[im_num]['save_location'], image) #flag is IMWRITE_TIFF_COMPRESSION + number - refer to libtiff for integer constants for compression
+                io.imsave(self.events[im_num]['save_location'], image)
+                # cv.imwrite(self.events[im_num]['save_location'], image) #flag is IMWRITE_TIFF_COMPRESSION + number - refer to libtiff for integer constants for compression
         else:
             pass
             # io.imsave(self.events[im_num]['save_location'], image, check_contrast=False)
@@ -236,8 +236,8 @@ class run_acquisition:
             pred = pred > thresh
             pred = morphology.remove_small_objects(pred,100)
             pred_labels = measure.label(pred).astype('uint16')
-            # io.imsave(save_path,pred_labels,compress=6,check_contrast=False)
-            cv.imwrite(save_path,pred_labels)
+            io.imsave(save_path,pred_labels,compress=6,check_contrast=False)
+            # cv.imwrite(save_path,pred_labels)
 
     def _runAcq(self):
         #here acquisition needs to be stopped by adding 'None' to event_queue 
