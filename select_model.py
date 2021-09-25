@@ -9,7 +9,7 @@ class select_model(QtWidgets.QDialog):
     
     send_model = QtCore.Signal(dict)
 
-    def __init__(self, parent=None, preset = None):
+    def __init__(self, parent=None, preset = None, timelapse = None):
         super(select_model, self).__init__(parent)
 
         loader = QUiLoader()
@@ -19,9 +19,10 @@ class select_model(QtWidgets.QDialog):
 
         self.ui.model_path = ''
         self.ui.skip_frames = []
-        self.ui.this_preset = preset
+        self.ui.preset = preset
+        self.ui.timelapse = timelapse
 
-        self.ui.textBrowser_preset.setText(str(self.ui.this_preset))
+        self.ui.textBrowser_preset.setText(f"{self.ui.preset}, {self.ui.timelapse}")
 
         self.ui.pushButton_loadModel.clicked.connect(self.load_model)
         self.ui.pushButton_confirm.clicked.connect(self.confirm_model)

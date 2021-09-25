@@ -170,8 +170,8 @@ class mdma(QtWidgets.QMainWindow):
             os.remove(metadata_location)
             print('deleting metadata')
 
-        # self.ui.acq = acquisition.run_acquisition(events = run_events, save_path = save_dir_name)
-        self.ui.acq = rt_acquisition.run_acquisition(events = run_events, save_path = save_dir_name)
+        self.ui.acq = acquisition.run_acquisition(events = run_events, save_path = save_dir_name)
+        # self.ui.acq = rt_acquisition.run_acquisition(events = run_events, save_path = save_dir_name)
         self.ui.acq._run()
 
     def update_positions(self):

@@ -145,10 +145,6 @@ class add_configuration(QtWidgets.QDialog):
             self.ui.positions = []
             self.ui.channels = []
 
-        # #initialise channel selection boxes
-        # for c in self.ui.configs: #GROUP
-        #     self.ui.comboBox_selectGroup.addItem(c)
-
     #channel callbacks
     def add_channel_preset(self):
         #tableWidge_channels callbacks - working with comboBoxes
@@ -159,20 +155,27 @@ class add_configuration(QtWidgets.QDialog):
         #to populate comboboxes
         first_config_name = list(self.ui.configs.keys())[0]
 
+        #check box column
+        check_box = QtWidgets.QCheckBox()
+        check_box.setStyleSheet("margin-left:50%; margin-right:50%;") #this centers the box, not very well tho
+        self.ui.tableWidget_channels.setCellWidget(n,0,check_box)
+
+        #group column
         cb_group = QtWidgets.QComboBox()
-        for _ in list(self.ui.configs.keys()):
-            cb_group.addItem(_)    
+        for this_group in list(self.ui.configs.keys()):
+            cb_group.addItem(this_group)    
         self.ui.tableWidget_channels.setCellWidget(n,1,cb_group)
         #add calback after creation not to invoke the callback on creation
         cb_group.currentIndexChanged.connect(self.change_group_combobox)
         
-        
+        #preset column
         cb_preset = QtWidgets.QComboBox()
-        for _ in self.ui.configs[first_config_name]:
-            cb_preset.addItem(_)
+        for this_preset in self.ui.configs[first_config_name]:
+            cb_preset.addItem(this_preset)
         self.ui.tableWidget_channels.setCellWidget(n,2,cb_preset)
         cb_preset.currentIndexChanged.connect(self.change_preset_combobox)
 
+        #exposure column
         exposure_widget = QtWidgets.QLineEdit()
         exposure_widget.textChanged.connect(self.change_preset_exposure)
         exposure_widget.setText('100')
@@ -192,7 +195,7 @@ class add_configuration(QtWidgets.QDialog):
         this_row = self.ui.tableWidget_channels.currentRow()
         
         #this is reference to the combo box
-        this_item = self.ui.tableWidget_channels.cellWidget(this_row,0)
+        this_item = self.ui.tableWidget_channels.cellWidget(this_row,1)
 
         #check if there is already a channel added
         if this_item is None:
@@ -205,12 +208,12 @@ class add_configuration(QtWidgets.QDialog):
         if selected_config_gruop == self.ui.channels[this_row]['Group']:
             return
 
-        self.ui.tableWidget_channels.cellWidget(this_row,1).setCurrentIndex(0)
+        self.ui.tableWidget_channels.cellWidget(this_row,2).setCurrentIndex(0)
 
         cb_preset = QtWidgets.QComboBox()
         for _ in self.ui.configs[selected_config_gruop]:
             cb_preset.addItem(_)
-        self.ui.tableWidget_channels.setCellWidget(this_row,1,cb_preset)
+        self.ui.tableWidget_channels.setCellWidget(this_row,2,cb_preset)
         cb_preset.currentIndexChanged.connect(self.change_preset_combobox)
 
         self.ui.channels[this_row] = ({'Group':selected_config_gruop, 
@@ -224,7 +227,7 @@ class add_configuration(QtWidgets.QDialog):
        
         this_row = self.ui.tableWidget_channels.currentRow()
        
-        this_item = self.ui.tableWidget_channels.cellWidget(this_row,1)
+        this_item = self.ui.tableWidget_channels.cellWidget(this_row,2)
         
         if this_item is None:
             return
@@ -242,22 +245,55 @@ class add_configuration(QtWidgets.QDialog):
         self.ui.channels[this_row]['Exposure'] = current_exposure
 
     def remove_channel_preset(self): 
-        #remove preset from the channels tableWidget 
-        this_row = self.ui.tableWidget_channels.currentRow()
-        self.ui.tableWidget_channels.removeRow(this_row)
-        del self.ui.channels[this_row] 
+        #remove preset from the channels tableWidget - handles multiple selections
+
+        #check which channels are selected by the user
+        selected_channels = []
+        for this_row in range(self.ui.tableWidget_channels.rowCount()):
+            #get the cellWidget, it is not the 'item'
+            check_box = self.ui.tableWidget_channels.cellWidget(this_row,0)
+            if check_box.checkState() == QtCore.Qt.CheckState.Checked:
+                selected_channels.append(this_row)
+        
+        if len(selected_channels) == 0:
+            return
+
+        self.ui.channels = [chan for x,chan in enumerate(self.ui.channels) if x not in selected_channels]
+        print(self.ui.channels)
+        #update table widget
+        for ch in reversed(selected_channels):
+            self.ui.tableWidget_channels.removeRow(ch)
 
     def add_segmentation_parameters(self):
         #add segmentation parameters
+        #TODO - add 'detect barcode' checkbox
 
-        #TODO - select which channel -> open a GUI window -> Send configuration
-        this_row = self.ui.tableWidget_channels.currentRow()
+        selected_channels = []
+        for this_row in range(self.ui.tableWidget_channels.rowCount()):
+            #get the cellWidget, it is not the 'item'
+            check_box = self.ui.tableWidget_channels.cellWidget(this_row,0)
+            if check_box.checkState() == QtCore.Qt.CheckState.Checked:
+                selected_channels.append(this_row)
+        
+        if len(selected_channels) == 0:
+            print('no channel is selected')
+            return
+        elif len(selected_channels) > 1:
+            print('only one channel can be selected')
+            return
+        elif len(self.ui.frames) == 0:
+            print('not timepoints to segment')
+            return
+
+        this_row = selected_channels[0]
         this_preset = self.ui.channels[this_row] 
-        self.ui.add_model_window = select_model.select_model(preset = this_preset)
+        #all channels share same timelapse and position parameters
+        self.ui.add_model_window = select_model.select_model(preset = this_preset, timelapse = self.ui.frames)
         self.ui.add_model_window.send_model.connect(self.test)
 
-    def test(self,signal):
-        print(signal)
+    def test(self,message):
+        #receive signal from select_model window
+        print(message)
 
     def add_positions_list(self):
         #add positions from the MM position list
@@ -270,7 +306,6 @@ class add_configuration(QtWidgets.QDialog):
         #update info label
         self.ui.label_info_pos_val.setText(str(len(self.ui.positions)))        
 
-
     def clear_position_list(self):
         #clear the position list
         self.ui.listWidget_positionList.clear()
@@ -278,7 +313,6 @@ class add_configuration(QtWidgets.QDialog):
 
         #update info label
         self.ui.label_info_pos_val.setText('0')
-
 
     def remove_position_from_list(self):
         #working with selection of multiple events 
