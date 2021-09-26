@@ -20,6 +20,7 @@ class run_acquisition:
 
     TODO-update documentation
     TODO-error handling
+    TODO-connect segmentation and non-segmentation version together with segmentation and barcode flags
     Kuba
     """
 

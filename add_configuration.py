@@ -61,7 +61,6 @@ class add_configuration(QtWidgets.QDialog):
         self.ui.pushButton_clearPos.clicked.connect(self.clear_position_list)
         self.ui.pushButton_removePos.clicked.connect(self.remove_position_from_list)
       
-
         #allow for multiple selection in the QListWidget
         self.ui.listWidget_timePoints.setSelectionMode(QtWidgets.QAbstractItemView.ExtendedSelection)   
 
@@ -75,6 +74,7 @@ class add_configuration(QtWidgets.QDialog):
         self.ui.pushButton_addPreset.clicked.connect(self.add_channel_preset)
         self.ui.pushButton_removePreset.clicked.connect(self.remove_channel_preset)
         self.ui.pushButton_segmentation.clicked.connect(self.add_segmentation_parameters)
+        self.ui.pushButton_detectBarcode.clicked.connect(self.add_barcode_detection)
 
         #closing behaviour
         self.ui.pushButton_addConfiguration.clicked.connect(self.emit_configuration)
@@ -281,9 +281,6 @@ class add_configuration(QtWidgets.QDialog):
         elif len(selected_channels) > 1:
             print('only one channel can be selected')
             return
-        elif len(self.ui.frames) == 0:
-            print('not timepoints to segment')
-            return
 
         this_row = selected_channels[0]
         this_preset = self.ui.channels[this_row] 
@@ -294,6 +291,34 @@ class add_configuration(QtWidgets.QDialog):
     def test(self,message):
         #receive signal from select_model window
         print(message)
+
+    def add_barcode_detection(self):
+        #select if a channel will be used for barcode detection
+        selected_channels = []
+        for this_row in range(self.ui.tableWidget_channels.rowCount()):
+            #get the cellWidget, it is not the 'item'
+            check_box = self.ui.tableWidget_channels.cellWidget(this_row,0)
+            if check_box.checkState() == QtCore.Qt.CheckState.Checked:
+                selected_channels.append(this_row)
+        
+        if len(selected_channels) == 0:
+            print('no channel is selected')
+            return
+        elif len(selected_channels) > 1:
+            print('only one channel can be selected')
+            return
+        
+        this_chan = self.ui.channels[selected_channels[0]]['Preset']
+        msgBox = QtWidgets.QMessageBox()
+        msgBox.setText("Barcode detection only works on phase contrast.")
+        msgBox.setInformativeText(f"Add barcode detection to >{this_chan}< channel")
+        msgBox.setStandardButtons(QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.Cancel)
+        m = msgBox.exec()
+        if m == QtWidgets.QMessageBox.Yes:
+            #add barcode detection to the given channel
+            print(f"adding barcode detection to >{this_chan}< channel")
+            pass
+        
 
     def add_positions_list(self):
         #add positions from the MM position list

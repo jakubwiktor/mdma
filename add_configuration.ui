@@ -924,6 +924,13 @@
               </property>
              </widget>
             </item>
+            <item>
+             <widget class="QPushButton" name="pushButton_detectBarcode">
+              <property name="text">
+               <string>Detect Barcode</string>
+              </property>
+             </widget>
+            </item>
            </layout>
           </widget>
          </item>
