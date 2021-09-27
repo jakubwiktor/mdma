@@ -24,10 +24,11 @@ class run_acquisition:
     Kuba
     """
 
-    def __init__(self, events = None, save_path = '', q = None):
+    def __init__(self, events = None, save_path = '', q = None, net_path = ''):
         self.events = events
         self.tot_images = len(events)
         self.save_path = save_path
+        self.net_path = net_path
         
         #initialise shared values
         self.check_abort = Value('b',False) # <- shared between processes
@@ -64,17 +65,19 @@ class run_acquisition:
             print(self.events[im_num+1])
 
         #add to multiprocessing queue phase image
-        if self.events[im_num]['channel']['config'] == 'aphase':
+        if self.events[im_num]['segmentation']['do']:
             
             #
             #detect barcode - if first image store the image
             #
-            
+            # TODO enclose this in a fucntion and move outside of the main code here
+
             if self.barcodes[self.events[im_num]['pos_label']] is None:
                 barcode_img = find_barcode_region(image)
                 self.barcodes[self.events[im_num]['pos_label']] = barcode_img
             
             barcode_img = self.barcodes[self.events[im_num]['pos_label']]
+
             if barcode_img is None:
                 top_left = None
                 bottom_right = None
@@ -86,13 +89,13 @@ class run_acquisition:
                 b_image = image[top_left[1]:bottom_right[1],top_left[0]:bottom_right[0]]
                 # #save barcode image 
             
-            barcode_save_path = self.events[im_num]['save_location'].replace('aphase', 'barcode')
-                
+            barcode_save_path = self.events[im_num]['save_location'].replace(self.events[im_num]['channel']['config'],'barcode')
+            
             #TODO - fix this ugly shit
             if not(os.path.exists(os.path.split(barcode_save_path)[0])):
                 os.makedirs(os.path.split(barcode_save_path)[0])
             
-            io.imwrite(barcode_save_path, b_image)
+            io.imsave(barcode_save_path, b_image, check_contrast=0)
 
             barcode_loc = dict()
             barcode_loc['file'] = barcode_save_path
@@ -105,12 +108,17 @@ class run_acquisition:
             #end of barcode testing
             #
 
-            seg_save_path = self.events[im_num]['save_location'].replace('aphase', 'segmentation')
+            seg_save_path = self.events[im_num]['save_location'].replace(self.events[im_num]['channel']['config'], self.events[im_num]['channel']['config']+'_segmented')
+            print(seg_save_path)
+
             self.q.put((image, seg_save_path))    
 
-            #hot-fix, save every 10th image
-            if self.events[im_num]['min_start_time']%600 == 0:
-                io.imsave(self.events[im_num]['save_location'], image)
+            #take number portion of the save file and check which image it is
+            which_image = self.events[im_num]['save_location']
+            which_image = int(''.join(x for x in which_image.split('/')[-1] if x.isdigit())) + 1 #plus 1 because names start from 0
+
+            if which_image % int(self.events[im_num]['segmentation']['save_frames']) == 0: #save if mod of image and save frames is 0
+                io.imsave(self.events[im_num]['save_location'], image, check_contrast=0)
                 # cv.imwrite(self.events[im_num]['save_location'], image) #flag is IMWRITE_TIFF_COMPRESSION + number - refer to libtiff for integer constants for compression
         else:
             pass
@@ -197,8 +205,11 @@ class run_acquisition:
         from skimage import io, measure, morphology
 
         net = UNet(num_classes=1)
-        saved_model = 'F:\\Jakub\\mdma-main\\Unet_mixed_brightnessAdj_Adam_HybridLoss_512px_cellsUnweighted.pth' #01.06.2021
-        # saved_model = 'C:\\Users\\kubus\\Documents\\trained_models\\Unet_mixed_brightnessAdj_Adam_HybridLoss_512px_cellsUnweighted.pth' #01.06.2021
+        # saved_model = 'F:\\Jakub\\mdma-main\\Unet_mixed_brightnessAdj_Adam_HybridLoss_512px_cellsUnweighted.pth' #01.06.2021
+        saved_model = 'C:\\Users\\kubus\\Documents\\trained_models\\Unet_mixed_brightnessAdj_Adam_HybridLoss_512px_cellsUnweighted.pth' #01.06.2021
+
+        #TODO specify network directory
+        # saved_model = self.net_path
 
         saved_net = torch.load(saved_model)
         net.load_state_dict(saved_net['model_state_dict'])
@@ -237,7 +248,7 @@ class run_acquisition:
             pred = pred > thresh
             pred = morphology.remove_small_objects(pred,100)
             pred_labels = measure.label(pred).astype('uint16')
-            io.imsave(save_path,pred_labels,compress=6,check_contrast=False)
+            io.imsave(save_path,pred_labels,compress=6,check_contrast=0)
             # cv.imwrite(save_path,pred_labels)
 
     def _runAcq(self):

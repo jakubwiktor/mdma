@@ -76,6 +76,12 @@ class add_configuration(QtWidgets.QDialog):
         self.ui.pushButton_segmentation.clicked.connect(self.add_segmentation_parameters)
         self.ui.pushButton_detectBarcode.clicked.connect(self.add_barcode_detection)
 
+        #define QTableWidget column indexes for channels - important for channels functions
+        self.check_column = 0
+        self.group_column = 1
+        self.preset_column = 2 
+        self.exposure_column = 3
+
         #closing behaviour
         self.ui.pushButton_addConfiguration.clicked.connect(self.emit_configuration)
         self.ui.pushButton_cancelConfiguration.clicked.connect(self.cancel_configuration_do_nothing)
@@ -86,6 +92,8 @@ class add_configuration(QtWidgets.QDialog):
        
         #enable loading and editing the presets
         if preset is not None:
+            
+            #TODO - add check mark if the channel is selected for segmentation, read the segmentation
 
             #here the channel configurations are stored
             self.ui.frames = preset['frames']
@@ -99,14 +107,19 @@ class add_configuration(QtWidgets.QDialog):
                 #to populate comboboxes
                 this_config_name = ch['Group']
 
+                #check box column
+                check_box = QtWidgets.QCheckBox()
+                check_box.setStyleSheet("margin-left:50%; margin-right:50%;") #this centers the box, not very well tho
+                self.ui.tableWidget_channels.setCellWidget(n,self.check_column,check_box)
+
                 cb_group = QtWidgets.QComboBox()
                 for _ in list(self.ui.configs.keys()):
                     cb_group.addItem(_)    
-                self.ui.tableWidget_channels.setCellWidget(n,1,cb_group)
+                self.ui.tableWidget_channels.setCellWidget(n,self.group_column,cb_group)
                 
                 #select the correct Group to display
                 current_group_index = list(self.ui.configs.keys()).index(this_config_name)
-                self.ui.tableWidget_channels.cellWidget(ch_index,1).setCurrentIndex(current_group_index)
+                self.ui.tableWidget_channels.cellWidget(ch_index,self.group_column).setCurrentIndex(current_group_index)
                 
                 #add callback after creation not to invoke the callback on creation
                 cb_group.currentIndexChanged.connect(self.change_group_combobox)
@@ -114,11 +127,11 @@ class add_configuration(QtWidgets.QDialog):
                 cb_preset = QtWidgets.QComboBox()
                 for _ in self.ui.configs[this_config_name]:
                     cb_preset.addItem(_)
-                self.ui.tableWidget_channels.setCellWidget(n,2,cb_preset)
+                self.ui.tableWidget_channels.setCellWidget(n,self.preset_column,cb_preset)
 
                 #display the correct Preset
                 current_preset_index = self.ui.configs[this_config_name].index(ch['Preset'])
-                self.ui.tableWidget_channels.cellWidget(ch_index,2).setCurrentIndex(current_preset_index)
+                self.ui.tableWidget_channels.cellWidget(ch_index,self.preset_column).setCurrentIndex(current_preset_index)
 
                 #add callback
                 cb_preset.currentIndexChanged.connect(self.change_preset_combobox)
@@ -126,7 +139,7 @@ class add_configuration(QtWidgets.QDialog):
                 exposure_widget = QtWidgets.QLineEdit()
                 exposure_widget.textChanged.connect(self.change_preset_exposure)
                 exposure_widget.setText(str(ch['Exposure']))
-                self.ui.tableWidget_channels.setCellWidget(n,3,exposure_widget)
+                self.ui.tableWidget_channels.setCellWidget(n,self.exposure_column,exposure_widget)
     
             for ch in self.ui.positions:
                 self.ui.listWidget_positionList.addItem(str(ch))
@@ -158,13 +171,13 @@ class add_configuration(QtWidgets.QDialog):
         #check box column
         check_box = QtWidgets.QCheckBox()
         check_box.setStyleSheet("margin-left:50%; margin-right:50%;") #this centers the box, not very well tho
-        self.ui.tableWidget_channels.setCellWidget(n,0,check_box)
+        self.ui.tableWidget_channels.setCellWidget(n,self.check_column,check_box)
 
         #group column
         cb_group = QtWidgets.QComboBox()
         for this_group in list(self.ui.configs.keys()):
             cb_group.addItem(this_group)    
-        self.ui.tableWidget_channels.setCellWidget(n,1,cb_group)
+        self.ui.tableWidget_channels.setCellWidget(n,self.group_column,cb_group)
         #add calback after creation not to invoke the callback on creation
         cb_group.currentIndexChanged.connect(self.change_group_combobox)
         
@@ -172,21 +185,22 @@ class add_configuration(QtWidgets.QDialog):
         cb_preset = QtWidgets.QComboBox()
         for this_preset in self.ui.configs[first_config_name]:
             cb_preset.addItem(this_preset)
-        self.ui.tableWidget_channels.setCellWidget(n,2,cb_preset)
+        self.ui.tableWidget_channels.setCellWidget(n,self.preset_column,cb_preset)
         cb_preset.currentIndexChanged.connect(self.change_preset_combobox)
 
         #exposure column
         exposure_widget = QtWidgets.QLineEdit()
         exposure_widget.textChanged.connect(self.change_preset_exposure)
         exposure_widget.setText('100')
-        self.ui.tableWidget_channels.setCellWidget(n,3,exposure_widget)
+        self.ui.tableWidget_channels.setCellWidget(n,self.exposure_column,exposure_widget)
 
         #update channel list
         self.ui.channels.append({'Group':first_config_name, 
                                  'Preset':self.ui.configs[first_config_name][0], 
+                                 'Segmentation':{'Do':0,'Save_frames':None},
                                  'Exposure': 100})
 
-    def change_group_combobox(self,event):
+    def change_group_combobox(self, event):
         #detect the change in the *channel* combo box and update the channels
         #event -> is the index of the combo box
 
@@ -195,7 +209,7 @@ class add_configuration(QtWidgets.QDialog):
         this_row = self.ui.tableWidget_channels.currentRow()
         
         #this is reference to the combo box
-        this_item = self.ui.tableWidget_channels.cellWidget(this_row,1)
+        this_item = self.ui.tableWidget_channels.cellWidget(this_row,self.group_column)
 
         #check if there is already a channel added
         if this_item is None:
@@ -208,16 +222,17 @@ class add_configuration(QtWidgets.QDialog):
         if selected_config_gruop == self.ui.channels[this_row]['Group']:
             return
 
-        self.ui.tableWidget_channels.cellWidget(this_row,2).setCurrentIndex(0)
+        self.ui.tableWidget_channels.cellWidget(this_row,self.group_column).setCurrentIndex(event)
 
         cb_preset = QtWidgets.QComboBox()
         for _ in self.ui.configs[selected_config_gruop]:
             cb_preset.addItem(_)
-        self.ui.tableWidget_channels.setCellWidget(this_row,2,cb_preset)
+        self.ui.tableWidget_channels.setCellWidget(this_row,self.preset_column,cb_preset)
         cb_preset.currentIndexChanged.connect(self.change_preset_combobox)
 
         self.ui.channels[this_row] = ({'Group':selected_config_gruop, 
                                        'Preset':self.ui.configs[selected_config_gruop][0], 
+                                       'Segmentation':self.ui.channels[this_row]['Segmentation'],
                                        'Exposure': self.ui.channels[this_row]['Exposure']})
 
     def change_preset_combobox(self,event):
@@ -227,7 +242,7 @@ class add_configuration(QtWidgets.QDialog):
        
         this_row = self.ui.tableWidget_channels.currentRow()
        
-        this_item = self.ui.tableWidget_channels.cellWidget(this_row,2)
+        this_item = self.ui.tableWidget_channels.cellWidget(this_row,self.preset_column)
         
         if this_item is None:
             return
@@ -251,7 +266,7 @@ class add_configuration(QtWidgets.QDialog):
         selected_channels = []
         for this_row in range(self.ui.tableWidget_channels.rowCount()):
             #get the cellWidget, it is not the 'item'
-            check_box = self.ui.tableWidget_channels.cellWidget(this_row,0)
+            check_box = self.ui.tableWidget_channels.cellWidget(this_row,self.check_column)
             if check_box.checkState() == QtCore.Qt.CheckState.Checked:
                 selected_channels.append(this_row)
         
@@ -271,7 +286,7 @@ class add_configuration(QtWidgets.QDialog):
         selected_channels = []
         for this_row in range(self.ui.tableWidget_channels.rowCount()):
             #get the cellWidget, it is not the 'item'
-            check_box = self.ui.tableWidget_channels.cellWidget(this_row,0)
+            check_box = self.ui.tableWidget_channels.cellWidget(this_row,self.check_column)
             if check_box.checkState() == QtCore.Qt.CheckState.Checked:
                 selected_channels.append(this_row)
         
@@ -488,6 +503,7 @@ class add_configuration(QtWidgets.QDialog):
     def emit_configuration(self):
         #self explanatory
         # print(self.ui.channels)
+        print(self.ui.channels)
         self.config_to_emit.emit({'channels':self.ui.channels, 'positions':self.ui.positions, 'frames':self.ui.frames})
         self.ui.close()
 

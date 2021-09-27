@@ -131,7 +131,7 @@ class mdma(QtWidgets.QMainWindow):
 
         #TODO write it in some decent format - position - channel - time > maybe best in a table?
         for fnum, ev in enumerate(self.compile_experiment()):
-            self.ui.preview_list.addItem(f"time: {ev['min_start_time']}s, position: {ev['pos_label']} , channel: {ev['channel']['config']}, No: {fnum}")
+            self.ui.preview_list.addItem(f"time: {ev['min_start_time']}s, position: {ev['pos_label']} , channel: {ev['channel']['config']}, segmentation: {ev['segmentation']['do']}, No: {fnum}")
         
         self.ui.preview_list.show()
 
@@ -155,9 +155,19 @@ class mdma(QtWidgets.QMainWindow):
         save_paths = list(set(save_paths))
         
         #add segmentation folder - this is hack-fix
-        for p in save_paths:
-            if p.split('/')[-1] == 'aphase':
-                save_paths.append(p.replace('aphase','segmentation'))
+        seg_flag = False
+        for ev in run_events:
+            if ev['segmentation']['do'] == 1:
+                seg_flag = True
+                which_channel = ev['save_location'].split('/')[-2]
+                break
+
+        if seg_flag:
+            for p in save_paths:
+                if p.split('/')[-1] == which_channel:
+                    save_paths.append(p.replace(which_channel,'segmentation'))
+            
+        print(save_paths)
 
         for savedir in save_paths:
             #if the directory already exitsts start overwriting it
@@ -170,8 +180,8 @@ class mdma(QtWidgets.QMainWindow):
             os.remove(metadata_location)
             print('deleting metadata')
 
-        self.ui.acq = acquisition.run_acquisition(events = run_events, save_path = save_dir_name)
-        # self.ui.acq = rt_acquisition.run_acquisition(events = run_events, save_path = save_dir_name)
+        # self.ui.acq = acquisition.run_acquisition(events = run_events, save_path = save_dir_name)
+        self.ui.acq = rt_acquisition.run_acquisition(events = run_events, save_path = save_dir_name)
         self.ui.acq._run()
 
     def update_positions(self):
@@ -186,8 +196,8 @@ class mdma(QtWidgets.QMainWindow):
     def save_setting(self):
         #select a file to save the parameters of the acquision: how to store them? 
         file_name = QFileDialog.getSaveFileName(self, "Save Config. File",
-                                                "C:\Documents\\",
-                                                 "configuration file, '.txt")
+                                                      "C:\Documents\\",
+                                                      "configuration file, '.txt")
 
         if file_name[0] == '': #if cancel was pressed
             return
@@ -226,7 +236,6 @@ class mdma(QtWidgets.QMainWindow):
         #out = [''.join(filter(str.isdigit, t)) for t in test]
         #out.sort(key=int)
         #print(out)
-
         events = []
         for config in self.ui.configurations:
             for time_counter, time_value in enumerate(config['frames']):
@@ -238,6 +247,7 @@ class mdma(QtWidgets.QMainWindow):
 
                         event = {'axes':{'position': pnumber},
                                 'channel': {'group': channel['Group'], 'config': channel['Preset']},
+                                'segmentation':{'do':channel['Segmentation']['Do'], 'save_frames':channel['Segmentation']['Save_frames']},
                                 'exposure': int(channel['Exposure']),
                                 'z': position['Z'],
                                 'min_start_time': time_value,

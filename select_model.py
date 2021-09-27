@@ -17,30 +17,41 @@ class select_model(QtWidgets.QDialog):
 
         self.ui.show()
 
-        self.ui.model_path = ''
-        self.ui.skip_frames = []
-        self.ui.preset = preset
-        self.ui.timelapse = timelapse
+        self.model_path = ''
+        self.skip_frames = None
+        self.preset = preset
+        self.timelapse = timelapse
 
-        self.ui.textBrowser_preset.setText(f"{self.ui.preset}, {self.ui.timelapse}")
+        self.ui.textBrowser_preset.setText(f"{self.preset}, {self.timelapse}")
 
         self.ui.pushButton_loadModel.clicked.connect(self.load_model)
         self.ui.pushButton_confirm.clicked.connect(self.confirm_model)
+        self.ui.lineEdit_skipFrames.textChanged.connect(self.change_skip_frames)
 
     def load_model(self):
         #browse to find the model to use and emit it to the add_configurtion gui
-        fileName, _ = QtWidgets.QFileDialog.getOpenFileName(parent=self, 
-                                                            caption='select model',
-                                                            selectedFilter = "")
+        # fileName, _ = QtWidgets.QFileDialog.getOpenFileName(parent=self, 
+        #                                                     caption='select model',
+        #                                                     selectedFilter = "")
         
+        fileName = 'F:\\Jakub\\mdma-main\\Unet_mixed_brightnessAdj_Adam_HybridLoss_512px_cellsUnweighted.pth' #01.06.2021
+
         self.ui.textBrowser_modelPath.setText(fileName)
-        self.ui.model_path = fileName
+        self.model_path = fileName
+    
+    def change_skip_frames(self,event):
+        #detect user input
+        self.skip_frames = event
 
     def confirm_model(self):
         #send model path to add_configuration gui
         #TODO - REDO THE CHANNEL CONFIGURATION HERE - save one with segmentation flag, the other with nomal channel with changed timelapse
-        if self.ui.model_path != '':
-            self.send_model.emit(self.ui.model_path)
+        if self.model_path != '':
+            # self.preset['Segmentation'] = dict()
+            self.preset['Segmentation']['Do'] = 1
+            self.preset['Segmentation']['Save_frames'] = self.skip_frames
+            self.send_model.emit(self.model_path)
+            print(self.preset)
             self.ui.close()
 
 def main():
