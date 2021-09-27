@@ -175,10 +175,8 @@ class mdma(QtWidgets.QMainWindow):
         if seg_flag:
             for p in save_paths:
                 if p.split('/')[-1] == which_channel:
-                    save_paths.append(p.replace(which_channel,'segmentation'))
+                    save_paths.append(p.replace(which_channel,f"{which_channel}_segmented"))
             
-        print(save_paths)
-
         for savedir in save_paths:
             #if the directory already exitsts start overwriting it
             if not(os.path.exists(savedir)):
@@ -191,7 +189,7 @@ class mdma(QtWidgets.QMainWindow):
             print('deleting metadata')
 
         # self.ui.acq = acquisition.run_acquisition(events = run_events, save_path = save_dir_name)
-        self.ui.acq = rt_acquisition.run_acquisition(events = run_events, save_path = save_dir_name, net_path = self.ui.neural_net_configuration)
+        self.ui.acq = rt_acquisition.run_acquisition(events = run_events, save_path = save_dir_name, model_path = self.ui.neural_net_configuration)
         self.ui.acq._run()
 
     def update_positions(self):

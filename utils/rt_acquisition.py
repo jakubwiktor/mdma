@@ -49,8 +49,7 @@ class run_acquisition:
     def _image_process_fn(self, image, metadata, bridge, event_queue):
         """
         update documentation
-        TODO: check if the images are acquired as expected - check if im_num and self.counter
-        interact as intended
+
         """
         #image acquisition hook for pycromanager - saves file and metadata
         
@@ -62,55 +61,19 @@ class run_acquisition:
         
         #seems the function will be called even if event_queue is None. It was throwing an error before
         if im_num+1 < len(self.events): 
-            print(self.events[im_num+1])
+            print(self.events[im_num])
 
-        #add to multiprocessing queue phase image
+        
+        #detect barcode if necessary
+        detect_barcode = True
+        if detect_barcode:
+            self.detect_barcode_fun(im_num, image)
+
         if self.events[im_num]['segmentation']['do']:
-            
-            #
-            #detect barcode - if first image store the image
-            #
-            # TODO enclose this in a fucntion and move outside of the main code here
-
-            if self.barcodes[self.events[im_num]['pos_label']] is None:
-                barcode_img = find_barcode_region(image)
-                self.barcodes[self.events[im_num]['pos_label']] = barcode_img
-            
-            barcode_img = self.barcodes[self.events[im_num]['pos_label']]
-
-            if barcode_img is None:
-                top_left = None
-                bottom_right = None
-                b_image = np.zeros((100,100))
-            else:
-                top_left, bottom_right = match_barcode(image, barcode_img)
-
-                #for debugging
-                b_image = image[top_left[1]:bottom_right[1],top_left[0]:bottom_right[0]]
-                # #save barcode image 
-            
-            barcode_save_path = self.events[im_num]['save_location'].replace(self.events[im_num]['channel']['config'],'barcode')
-            
-            #TODO - fix this ugly shit
-            if not(os.path.exists(os.path.split(barcode_save_path)[0])):
-                os.makedirs(os.path.split(barcode_save_path)[0])
-            
-            io.imsave(barcode_save_path, b_image, check_contrast=0)
-
-            barcode_loc = dict()
-            barcode_loc['file'] = barcode_save_path
-            barcode_loc['pos'] = top_left
-            
-            with open(f"{self.save_path}/barcode_locations.txt", 'a') as f:
-                f.write(json.dumps(barcode_loc, separators=(',',':')))
-                f.write('\n')
-            #
-            #end of barcode testing
-            #
 
             seg_save_path = self.events[im_num]['save_location'].replace(self.events[im_num]['channel']['config'], self.events[im_num]['channel']['config']+'_segmented')
-            print(seg_save_path)
-
+            
+            #add to multiprocessing queue phase image
             self.q.put((image, seg_save_path))    
 
             #take number portion of the save file and check which image it is
@@ -121,9 +84,8 @@ class run_acquisition:
                 io.imsave(self.events[im_num]['save_location'], image, check_contrast=0)
                 # cv.imwrite(self.events[im_num]['save_location'], image) #flag is IMWRITE_TIFF_COMPRESSION + number - refer to libtiff for integer constants for compression
         else:
-            pass
-            # io.imsave(self.events[im_num]['save_location'], image, check_contrast=False)
-            cv.imwrite(self.events[im_num]['save_location'], image) #i think by defalt it uses compression. 
+            io.imsave(self.events[im_num]['save_location'], image, check_contrast=False)
+            # cv.imwrite(self.events[im_num]['save_location'], image) #i think by defalt it uses compression. 
         
         #update metadata - matadata is json with a format:
         #{"position":"Pos10",
@@ -196,6 +158,7 @@ class run_acquisition:
         """
         
         update documentation
+        TODO - load also the network instead of importin UNet
         
         """
         #construct real time acquisition function that checks for queue
@@ -213,8 +176,8 @@ class run_acquisition:
 
         try:
             saved_net = torch.load(saved_model)
-        except OSError as e:
-            print(e)
+        except OSError as err:
+            print(f"error in model path: {err}")
             return
 
         net.load_state_dict(saved_net['model_state_dict'])
@@ -255,6 +218,43 @@ class run_acquisition:
             pred_labels = measure.label(pred).astype('uint16')
             io.imsave(save_path,pred_labels,compress=6,check_contrast=0)
             # cv.imwrite(save_path,pred_labels)
+
+
+    def detect_barcode_fun(self,im_num,image):
+        #find barcode and save the location of upper left corner of the detection
+
+        if self.barcodes[self.events[im_num]['pos_label']] is None:
+                barcode_img = find_barcode_region(image)
+                self.barcodes[self.events[im_num]['pos_label']] = barcode_img
+            
+        barcode_img = self.barcodes[self.events[im_num]['pos_label']]
+
+        if barcode_img is None:
+            top_left = None
+            bottom_right = None
+            b_image = np.zeros((100,100))
+        else:
+            top_left, bottom_right = match_barcode(image, barcode_img)
+
+            #for debugging
+            b_image = image[top_left[1]:bottom_right[1],top_left[0]:bottom_right[0]]
+            # #save barcode image 
+        
+        barcode_save_path = self.events[im_num]['save_location'].replace(self.events[im_num]['channel']['config'],'barcode')
+        
+        #could be moved for the first instance of the function call
+        if not(os.path.exists(os.path.split(barcode_save_path)[0])):
+            os.makedirs(os.path.split(barcode_save_path)[0])
+        
+        io.imsave(barcode_save_path, b_image, check_contrast=0)
+
+        barcode_loc = dict()
+        barcode_loc['file'] = barcode_save_path
+        barcode_loc['pos'] = top_left
+        
+        with open(f"{self.save_path}/barcode_locations.txt", 'a') as f:
+            f.write(json.dumps(barcode_loc, separators=(',',':')))
+            f.write('\n')
 
     def _runAcq(self):
         #here acquisition needs to be stopped by adding 'None' to event_queue 
