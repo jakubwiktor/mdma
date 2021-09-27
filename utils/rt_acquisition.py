@@ -24,11 +24,11 @@ class run_acquisition:
     Kuba
     """
 
-    def __init__(self, events = None, save_path = '', q = None, net_path = ''):
+    def __init__(self, events = None, save_path = '', q = None, model_path = ''):
         self.events = events
         self.tot_images = len(events)
         self.save_path = save_path
-        self.net_path = net_path
+        self.model_path = model_path
         
         #initialise shared values
         self.check_abort = Value('b',False) # <- shared between processes
@@ -206,12 +206,17 @@ class run_acquisition:
 
         net = UNet(num_classes=1)
         # saved_model = 'F:\\Jakub\\mdma-main\\Unet_mixed_brightnessAdj_Adam_HybridLoss_512px_cellsUnweighted.pth' #01.06.2021
-        saved_model = 'C:\\Users\\kubus\\Documents\\trained_models\\Unet_mixed_brightnessAdj_Adam_HybridLoss_512px_cellsUnweighted.pth' #01.06.2021
+        # saved_model = 'C:\\Users\\kubus\\Documents\\trained_models\\Unet_mixed_brightnessAdj_Adam_HybridLoss_512px_cellsUnweighted.pth' #01.06.2021
+        
+        #load specified model
+        saved_model = self.model_path
 
-        #TODO specify network directory
-        # saved_model = self.net_path
+        try:
+            saved_net = torch.load(saved_model)
+        except OSError as e:
+            print(e)
+            return
 
-        saved_net = torch.load(saved_model)
         net.load_state_dict(saved_net['model_state_dict'])
 
         net.cuda()

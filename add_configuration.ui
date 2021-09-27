@@ -1031,6 +1031,11 @@
                 <string>Exposure</string>
                </property>
               </column>
+              <column>
+               <property name="text">
+                <string>Segmentation</string>
+               </property>
+              </column>
              </widget>
             </item>
            </layout>

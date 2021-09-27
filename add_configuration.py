@@ -2,7 +2,7 @@ from PySide6 import QtWidgets, QtCore, QtGui
 from PySide6.QtWidgets import QApplication, QTableWidgetItem, QDialog
 from PySide6.QtUiTools import QUiLoader
 from PySide6.QtCore import QFile, QIODevice, Signal, Slot
-
+import copy
 
 import sys
 import select_model
@@ -13,7 +13,6 @@ import time
 
 #TODO read the exposure form the preset and set it: current_exposure = self.ui.lineEdit_setExposure.text()
 #TODO find out a way to pass the core property from mdma.py main window, so it wont open connections each time window is called
-
 #TODO - add function to update/change the positions of all existing presets - may be tricky, may be easy
 
 class add_configuration(QtWidgets.QDialog):
@@ -23,9 +22,6 @@ class add_configuration(QtWidgets.QDialog):
     def __init__(self, parent=None, preset=None, windowMode = 'ADD'):
         super(add_configuration, self).__init__(parent)
 
-        # uic.loadUi("add_configuration.ui", self)
-        # self.ui.show()
-
         loader = QUiLoader()
         self.ui = loader.load("add_configuration.ui")
         self.ui.show()
@@ -34,14 +30,9 @@ class add_configuration(QtWidgets.QDialog):
         self.ui.core =  self.ui.bridge.get_core()
         self.ui.mm_studio = self.ui.bridge.get_studio()
         self.ui.configs = self.get_configs()
+        self.ui.neural_net_path = ''
 
         self.ui.result = []
-
-        # #initialise tableWidge_channels -> before they are updated by loading the presets
-        # for _ in range(3):
-        #     self.ui.tableWidget_channels.insertColumn(_)
-        # #fill columns headers
-        # self.ui.tableWidget_channels.setHorizontalHeaderLabels(['Group','Preset','Exposure'])
         
         # #stretch to fill
         header = self.ui.tableWidget_channels.horizontalHeader()
@@ -81,6 +72,7 @@ class add_configuration(QtWidgets.QDialog):
         self.group_column = 1
         self.preset_column = 2 
         self.exposure_column = 3
+        self.segmentation_column = 4
 
         #closing behaviour
         self.ui.pushButton_addConfiguration.clicked.connect(self.emit_configuration)
@@ -140,7 +132,14 @@ class add_configuration(QtWidgets.QDialog):
                 exposure_widget.textChanged.connect(self.change_preset_exposure)
                 exposure_widget.setText(str(ch['Exposure']))
                 self.ui.tableWidget_channels.setCellWidget(n,self.exposure_column,exposure_widget)
-    
+                
+                #segmentation cell
+                if ch['Segmentation']['Do']:
+                    segmentation_item = QTableWidgetItem(f"Yes, save every {ch['Segmentation']['Save_frames']} frame")
+                else:
+                    segmentation_item = QTableWidgetItem(f"No")
+                self.ui.tableWidget_channels.setItem(ch_index, self.segmentation_column, segmentation_item)
+
             for ch in self.ui.positions:
                 self.ui.listWidget_positionList.addItem(str(ch))
             self.ui.label_info_pos_val.setText(str(len(self.ui.positions)))    
@@ -193,6 +192,10 @@ class add_configuration(QtWidgets.QDialog):
         exposure_widget.textChanged.connect(self.change_preset_exposure)
         exposure_widget.setText('100')
         self.ui.tableWidget_channels.setCellWidget(n,self.exposure_column,exposure_widget)
+
+        #segmentation column
+        segmentation_item = QTableWidgetItem("No")
+        self.ui.tableWidget_channels.setItem(n, self.segmentation_column, segmentation_item)
 
         #update channel list
         self.ui.channels.append({'Group':first_config_name, 
@@ -274,7 +277,6 @@ class add_configuration(QtWidgets.QDialog):
             return
 
         self.ui.channels = [chan for x,chan in enumerate(self.ui.channels) if x not in selected_channels]
-        print(self.ui.channels)
         #update table widget
         for ch in reversed(selected_channels):
             self.ui.tableWidget_channels.removeRow(ch)
@@ -298,17 +300,21 @@ class add_configuration(QtWidgets.QDialog):
             return
 
         this_row = selected_channels[0]
-        this_preset = self.ui.channels[this_row] 
+        this_preset = copy.deepcopy(self.ui.channels[this_row]) #otherwise the window modifies it due to python entanglement
         #all channels share same timelapse and position parameters
-        self.ui.add_model_window = select_model.select_model(preset = this_preset, timelapse = self.ui.frames)
-        self.ui.add_model_window.send_model.connect(self.test)
+        self.ui.add_model_window = select_model.select_model(preset = this_preset, timelapse = self.ui.frames, row = this_row)
+        self.ui.add_model_window.send_model.connect(self.add_segmentation)
 
-    def test(self,message):
-        #receive signal from select_model window
-        print(message)
+    def add_segmentation(self,message):
+        #segmentation column
+        segmentation_item = QTableWidgetItem(f"Yes, save every {message['preset']['Segmentation']['Save_frames']} frame")
+        self.ui.tableWidget_channels.setItem(message['row'], self.segmentation_column, segmentation_item)
+        self.ui.channels[message['row']] = message['preset']
+        self.ui.neural_net_path = message['model_path']
 
     def add_barcode_detection(self):
         #select if a channel will be used for barcode detection
+        #TODO - not working yet
         selected_channels = []
         for this_row in range(self.ui.tableWidget_channels.rowCount()):
             #get the cellWidget, it is not the 'item'
@@ -452,9 +458,7 @@ class add_configuration(QtWidgets.QDialog):
         self.ui.close()
 
     def getPositions(self):
-        
         #get current positions from mm_studio 
-
         positionListManager = self.ui.mm_studio.get_position_list_manager() 
         positions = positionListManager.get_position_list()
         numberOfPositions = positions.get_number_of_positions()
@@ -504,7 +508,11 @@ class add_configuration(QtWidgets.QDialog):
         #self explanatory
         # print(self.ui.channels)
         print(self.ui.channels)
-        self.config_to_emit.emit({'channels':self.ui.channels, 'positions':self.ui.positions, 'frames':self.ui.frames})
+        self.config_to_emit.emit({'channels':self.ui.channels, 
+                                  'positions':self.ui.positions, 
+                                  'frames':self.ui.frames,
+                                  'naural_net_path':self.ui.neural_net_path})
+
         self.ui.close()
 
 def main():

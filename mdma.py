@@ -35,12 +35,14 @@ class mdma(QtWidgets.QMainWindow):
         #preload a config for development
         self.ui.selected_preset = -1
         self.ui.configurations = []
+        self.ui.neural_net_configuration = ''
 
         #for development purposes
-        self.initalProgram  = [{'channels': [{'Group': 'Channel', 'Preset': 'Cy5', 'Exposure': 100}], 'positions': [{'Position Label': 'Pos0', 'X': 0, 'Y': 0, 'Z': 0, 'XYStage': 'XY', 'ZStage': 'Z'}, {'Position Label': 'Pos1', 'X': 0, 'Y': 0, 'Z': 0, 'XYStage': 'XY', 'ZStage': 'Z'}, {'Position Label': 'Pos2', 'X': 0, 'Y': 0, 'Z': 0, 'XYStage': 'XY', 'ZStage': 'Z'}, {'Position Label': 'Pos3', 'X': 0, 'Y': 0, 'Z': 0, 'XYStage': 'XY', 'ZStage': 'Z'}, {'Position Label': 'Pos4', 'X': 0, 'Y': 0, 'Z': 0, 'XYStage': 'XY', 'ZStage': 'Z'}, {'Position Label': 'Pos5', 'X': 0, 'Y': 0, 'Z': 0, 'XYStage': 'XY', 'ZStage': 'Z'}, {'Position Label': 'Pos6', 'X': 0, 'Y': 0, 'Z': 0, 'XYStage': 'XY', 'ZStage': 'Z'}, {'Position Label': 'Pos7', 'X': 0, 'Y': 0, 'Z': 0, 'XYStage': 'XY', 'ZStage': 'Z'}, {'Position Label': 'Pos8', 'X': 0, 'Y': 0, 'Z': 0, 'XYStage': 'XY', 'ZStage': 'Z'}, {'Position Label': 'Pos9', 'X': 0, 'Y': 0, 'Z': 0, 'XYStage': 'XY', 'ZStage': 'Z'}, {'Position Label': 'Pos10', 'X': 0, 'Y': 0, 'Z': 0, 'XYStage': 'XY', 'ZStage': 'Z'}, {'Position Label': 'Pos11', 'X': 0, 'Y': 0, 'Z': 0, 'XYStage': 'XY', 'ZStage': 'Z'}], 'frames': [0, 600, 1200, 1800, 2400, 
-                                3000]}, {'channels': [{'Group': 'Objective', 'Preset': '10X', 'Exposure': 100}], 'positions': [{'Position Label': 'Pos6', 'X': 0, 'Y': 0, 'Z': 0, 'XYStage': 'XY', 'ZStage': 'Z'}, {'Position Label': 'Pos7', 'X': 0, 'Y': 0, 'Z': 0, 'XYStage': 'XY', 'ZStage': 'Z'}, {'Position Label': 'Pos8', 'X': 0, 'Y': 0, 
-                                'Z': 0, 'XYStage': 'XY', 'ZStage': 'Z'}, {'Position Label': 'Pos9', 'X': 0, 'Y': 0, 'Z': 0, 'XYStage': 'XY', 'ZStage': 'Z'}, {'Position Label': 'Pos10', 'X': 0, 'Y': 0, 'Z': 0, 'XYStage': 'XY', 'ZStage': 'Z'}, {'Position Label': 'Pos11', 'X': 0, 'Y': 0, 'Z': 0, 'XYStage': 'XY', 'ZStage': 'Z'}], 'frames': [0, 1800]}]      
-        self.ui.configurations = self.initalProgram
+        # self.initalProgram  = [{'channels': [{'Group': 'Channel', 'Preset': 'Cy5', 'Exposure': 100}], 'positions': [{'Position Label': 'Pos0', 'X': 0, 'Y': 0, 'Z': 0, 'XYStage': 'XY', 'ZStage': 'Z'}, {'Position Label': 'Pos1', 'X': 0, 'Y': 0, 'Z': 0, 'XYStage': 'XY', 'ZStage': 'Z'}, {'Position Label': 'Pos2', 'X': 0, 'Y': 0, 'Z': 0, 'XYStage': 'XY', 'ZStage': 'Z'}, {'Position Label': 'Pos3', 'X': 0, 'Y': 0, 'Z': 0, 'XYStage': 'XY', 'ZStage': 'Z'}, {'Position Label': 'Pos4', 'X': 0, 'Y': 0, 'Z': 0, 'XYStage': 'XY', 'ZStage': 'Z'}, {'Position Label': 'Pos5', 'X': 0, 'Y': 0, 'Z': 0, 'XYStage': 'XY', 'ZStage': 'Z'}, {'Position Label': 'Pos6', 'X': 0, 'Y': 0, 'Z': 0, 'XYStage': 'XY', 'ZStage': 'Z'}, {'Position Label': 'Pos7', 'X': 0, 'Y': 0, 'Z': 0, 'XYStage': 'XY', 'ZStage': 'Z'}, {'Position Label': 'Pos8', 'X': 0, 'Y': 0, 'Z': 0, 'XYStage': 'XY', 'ZStage': 'Z'}, {'Position Label': 'Pos9', 'X': 0, 'Y': 0, 'Z': 0, 'XYStage': 'XY', 'ZStage': 'Z'}, {'Position Label': 'Pos10', 'X': 0, 'Y': 0, 'Z': 0, 'XYStage': 'XY', 'ZStage': 'Z'}, {'Position Label': 'Pos11', 'X': 0, 'Y': 0, 'Z': 0, 'XYStage': 'XY', 'ZStage': 'Z'}], 'frames': [0, 600, 1200, 1800, 2400, 
+        #                         3000]}, {'channels': [{'Group': 'Objective', 'Preset': '10X', 'Exposure': 100}], 'positions': [{'Position Label': 'Pos6', 'X': 0, 'Y': 0, 'Z': 0, 'XYStage': 'XY', 'ZStage': 'Z'}, {'Position Label': 'Pos7', 'X': 0, 'Y': 0, 'Z': 0, 'XYStage': 'XY', 'ZStage': 'Z'}, {'Position Label': 'Pos8', 'X': 0, 'Y': 0, 
+        #                         'Z': 0, 'XYStage': 'XY', 'ZStage': 'Z'}, {'Position Label': 'Pos9', 'X': 0, 'Y': 0, 'Z': 0, 'XYStage': 'XY', 'ZStage': 'Z'}, {'Position Label': 'Pos10', 'X': 0, 'Y': 0, 'Z': 0, 'XYStage': 'XY', 'ZStage': 'Z'}, {'Position Label': 'Pos11', 'X': 0, 'Y': 0, 'Z': 0, 'XYStage': 'XY', 'ZStage': 'Z'}], 'frames': [0, 1800]}]      
+        # self.ui.configurations = self.initalProgram
+        
         #populate the list
         for conf in self.ui.configurations:
             self.ui.listWidget_configs.addItem(self.print_configuration(conf))  
@@ -82,6 +84,10 @@ class mdma(QtWidgets.QMainWindow):
         self.ui.listWidget_configs.addItem(self.print_configuration(message))
         self.ui.configurations.append(copy.deepcopy(message)) # i dont know how to avoid deepcopy!
 
+        #add the model to remember
+        if len(message['naural_net_path']) > 0:
+            self.ui.neural_net_configuration = message['naural_net_path']
+
     @QtCore.Slot(dict)
     def edit_configuration(self, message):
         #here we get the signal emited by 'add' button of the add_configuration gui in the EDITING mode
@@ -90,6 +96,10 @@ class mdma(QtWidgets.QMainWindow):
         self.ui.listWidget_configs.clear()
         for conf in self.ui.configurations:
             self.ui.listWidget_configs.addItem(self.print_configuration(conf))
+
+        #eventually change the model path
+        if len(message['naural_net_path']) > 0:
+            self.ui.neural_net_configuration = message['naural_net_path']
 
     def print_configuration(self,single_configuration):
         #TODO - handle case when many channels are selected (spell the channels?
@@ -181,7 +191,7 @@ class mdma(QtWidgets.QMainWindow):
             print('deleting metadata')
 
         # self.ui.acq = acquisition.run_acquisition(events = run_events, save_path = save_dir_name)
-        self.ui.acq = rt_acquisition.run_acquisition(events = run_events, save_path = save_dir_name)
+        self.ui.acq = rt_acquisition.run_acquisition(events = run_events, save_path = save_dir_name, net_path = self.ui.neural_net_configuration)
         self.ui.acq._run()
 
     def update_positions(self):

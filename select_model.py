@@ -9,7 +9,7 @@ class select_model(QtWidgets.QDialog):
     
     send_model = QtCore.Signal(dict)
 
-    def __init__(self, parent=None, preset = None, timelapse = None):
+    def __init__(self, parent=None, preset = None, timelapse = None, row = None):
         super(select_model, self).__init__(parent)
 
         loader = QUiLoader()
@@ -18,9 +18,10 @@ class select_model(QtWidgets.QDialog):
         self.ui.show()
 
         self.model_path = ''
-        self.skip_frames = None
+        self.skip_frames = 1 #save every frame by default
         self.preset = preset
         self.timelapse = timelapse
+        self.row = row
 
         self.ui.textBrowser_preset.setText(f"{self.preset}, {self.timelapse}")
 
@@ -30,11 +31,11 @@ class select_model(QtWidgets.QDialog):
 
     def load_model(self):
         #browse to find the model to use and emit it to the add_configurtion gui
-        # fileName, _ = QtWidgets.QFileDialog.getOpenFileName(parent=self, 
-        #                                                     caption='select model',
-        #                                                     selectedFilter = "")
+        fileName, _ = QtWidgets.QFileDialog.getOpenFileName(parent=self, 
+                                                            caption='select model',
+                                                            selectedFilter = "")
         
-        fileName = 'F:\\Jakub\\mdma-main\\Unet_mixed_brightnessAdj_Adam_HybridLoss_512px_cellsUnweighted.pth' #01.06.2021
+        # fileName = 'F:\\Jakub\\mdma-main\\Unet_mixed_brightnessAdj_Adam_HybridLoss_512px_cellsUnweighted.pth' #01.06.2021
 
         self.ui.textBrowser_modelPath.setText(fileName)
         self.model_path = fileName
@@ -50,8 +51,7 @@ class select_model(QtWidgets.QDialog):
             # self.preset['Segmentation'] = dict()
             self.preset['Segmentation']['Do'] = 1
             self.preset['Segmentation']['Save_frames'] = self.skip_frames
-            self.send_model.emit(self.model_path)
-            print(self.preset)
+            self.send_model.emit({'preset':self.preset,'model_path':self.model_path, 'row':self.row})
             self.ui.close()
 
 def main():
