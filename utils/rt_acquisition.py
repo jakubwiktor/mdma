@@ -64,8 +64,8 @@ class run_acquisition:
             print(self.events[im_num])
 
         
-        #detect barcode if necessary
-        detect_barcode = True
+        #detect barcode if necessary - right now its linked to the segmentation parameter
+        detect_barcode = self.events[im_num]['segmentation']['do']
         if detect_barcode:
             self.detect_barcode_fun(im_num, image)
 
