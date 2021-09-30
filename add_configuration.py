@@ -11,15 +11,29 @@ from pycromanager import Bridge
 import math
 import time
 
-#TODO read the exposure form the preset and set it: current_exposure = self.ui.lineEdit_setExposure.text()
-#TODO find out a way to pass the core property from mdma.py main window, so it wont open connections each time window is called
-#TODO - add function to update/change the positions of all existing presets - may be tricky, may be easy
+from utils import get_positions
+
 
 class add_configuration(QtWidgets.QDialog):
-    
+    """
+    GUI to add channel configuration for micromanager multidimensional acquisition
+        input:
+
+            preset
+        
+            window_mode - 'ADD'/'EDIT' - specify whether the window is adding a new channel or modifying an existing one
+
+        output:
+            
+            emits dictionary : {'channels':self.ui.channels, 
+                                'positions':self.ui.positions, 
+                                'frames':self.ui.frames,
+                                'naural_net_path':self.ui.neural_net_path})
+        
+    """
     config_to_emit = QtCore.Signal(dict)
 
-    def __init__(self, parent=None, preset=None, windowMode = 'ADD'):
+    def __init__(self, parent=None, preset=None, window_mode='ADD'):
         super(add_configuration, self).__init__(parent)
 
         loader = QUiLoader()
@@ -79,8 +93,8 @@ class add_configuration(QtWidgets.QDialog):
         self.ui.pushButton_cancelConfiguration.clicked.connect(self.cancel_configuration_do_nothing)
 
         # modify the 'ADD' button to 'add' and 'edit' mode
-        if windowMode == 'edit':
-            self.ui.pushButton_addConfiguration.setText('Edit')
+        if window_mode == 'EDIT':
+            self.ui.pushButton_addConfiguration.setText('EDIT')
        
         #enable loading and editing the presets
         if preset is not None:
@@ -302,7 +316,7 @@ class add_configuration(QtWidgets.QDialog):
         this_row = selected_channels[0]
         this_preset = copy.deepcopy(self.ui.channels[this_row]) #otherwise the window modifies it due to python entanglement
         #all channels share same timelapse and position parameters
-        self.ui.add_model_window = select_model.select_model(preset = this_preset, timelapse = self.ui.frames, row = this_row)
+        self.ui.add_model_window = select_model.select_model(preset = this_preset, timelapse = self.ui.frames, row = this_row, model_path = self.ui.neural_net_path)
         self.ui.add_model_window.send_model.connect(self.add_segmentation)
 
     def add_segmentation(self,message):
@@ -339,12 +353,11 @@ class add_configuration(QtWidgets.QDialog):
             #add barcode detection to the given channel
             print(f"adding barcode detection to >{this_chan}< channel")
             pass
-        
 
     def add_positions_list(self):
         #add positions from the MM position list
-        self.ui.positions = self.getPositions()
-
+        self.ui.positions = get_positions.get_positions(mm_studio=self.ui.mm_studio)
+ 
         self.ui.listWidget_positionList.clear()
         for p in self.ui.positions:
             self.ui.listWidget_positionList.addItem(str(p))
@@ -382,7 +395,6 @@ class add_configuration(QtWidgets.QDialog):
 
         #update info label
         self.ui.label_info_pos_val.setText(str(len(self.ui.positions)))
-
 
     #timelapse callbacks
     def add_timelapse(self):
@@ -480,9 +492,7 @@ class add_configuration(QtWidgets.QDialog):
         return positionDictionary
 
     def get_configs(self):
-
-        #get micromanager configurations
-        
+        #get micromanager configurations        
         configs = {}
         availableGroups = self.ui.core.get_available_config_groups()
         if availableGroups.is_empty():
@@ -505,9 +515,7 @@ class add_configuration(QtWidgets.QDialog):
         return configs
 
     def emit_configuration(self):
-        #self explanatory
-        # print(self.ui.channels)
-        print(self.ui.channels)
+        #emit configuration to be picked up by mdma.py gui
         self.config_to_emit.emit({'channels':self.ui.channels, 
                                   'positions':self.ui.positions, 
                                   'frames':self.ui.frames,

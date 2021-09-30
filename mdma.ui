@@ -132,7 +132,7 @@
                 <item>
                  <widget class="QPushButton" name="pushButton_updatePositions">
                   <property name="text">
-                   <string>Update pos.</string>
+                   <string>Update all pos.</string>
                   </property>
                  </widget>
                 </item>
@@ -166,7 +166,7 @@
                 <item>
                  <widget class="QPushButton" name="pushButton_changePositions">
                   <property name="text">
-                   <string>Change pos.</string>
+                   <string>Change all pos.</string>
                   </property>
                  </widget>
                 </item>
@@ -569,7 +569,11 @@
            <number>0</number>
           </property>
           <item>
-           <widget class="QListWidget" name="listWidget_configs"/>
+           <widget class="QListWidget" name="listWidget_configs">
+            <property name="selectionMode">
+             <enum>QAbstractItemView::SingleSelection</enum>
+            </property>
+           </widget>
           </item>
          </layout>
         </widget>

@@ -2,14 +2,27 @@ from time import process_time
 from PySide6 import QtWidgets, QtCore, QtGui
 from PySide6.QtUiTools import QUiLoader
 
-
 import sys
 
 class select_model(QtWidgets.QDialog):
+    """
+    GUI to specify the trained neural netowrk model to be used for segmentation. Called by add_configuration.py
+    input
+        preset
+
+        timelapse 
+        
+        row
+        
+        model_path
+
+    out
+       dictionary - {'preset':self.preset,'model_path':self.model_path, 'row':self.row}
     
+    """
     send_model = QtCore.Signal(dict)
 
-    def __init__(self, parent=None, preset = None, timelapse = None, row = None):
+    def __init__(self, parent=None, preset=None, timelapse=None, row=None, model_path=''):
         super(select_model, self).__init__(parent)
 
         loader = QUiLoader()
@@ -17,13 +30,19 @@ class select_model(QtWidgets.QDialog):
 
         self.ui.show()
 
-        self.model_path = ''
+        self.model_path = model_path
         self.skip_frames = 1 #save every frame by default
         self.preset = preset
         self.timelapse = timelapse
         self.row = row
 
+        if len(self.model_path) == 0:
+            self.ui.textBrowser_modelPath.setText('Select model.')
+        else:
+            self.ui.textBrowser_modelPath.setText(self.model_path)
+
         self.ui.textBrowser_preset.setText(f"{self.preset}, {self.timelapse}")
+        self.ui.lineEdit_skipFrames.setText('1')
 
         self.ui.pushButton_loadModel.clicked.connect(self.load_model)
         self.ui.pushButton_confirm.clicked.connect(self.confirm_model)
@@ -35,8 +54,6 @@ class select_model(QtWidgets.QDialog):
                                                             caption='select model',
                                                             selectedFilter = "")
         
-        # fileName = 'F:\\Jakub\\mdma-main\\Unet_mixed_brightnessAdj_Adam_HybridLoss_512px_cellsUnweighted.pth' #01.06.2021
-
         self.ui.textBrowser_modelPath.setText(fileName)
         self.model_path = fileName
     

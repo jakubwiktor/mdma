@@ -8,18 +8,27 @@ import copy
 import sys
 import os
 from pycromanager import Bridge
+import json
 
 import add_configuration
 
 import acquisitionDialog
-from utils import acquisition, rt_acquisition
+from utils import acquisition, rt_acquisition, get_positions
 
-#needed packages: 
+#needed packages: conda/pip
 #pip install opencv-python
 #pip install pycromanager
+#pip install PySide6
+#pip install scikit-image
 #pytorch
 
+#TODO - add functionality to change / update the positions only for selected channel - change: QListWidget_configs -> selectionMode -> extendedSelection
+
 class mdma(QtWidgets.QMainWindow):
+    """
+    Main GUI for the mdma app.
+
+    """
     def __init__(self, parent=None):
         super(mdma, self).__init__(parent)
                 
@@ -30,7 +39,7 @@ class mdma(QtWidgets.QMainWindow):
 
         self.ui.bridge = Bridge()
         self.ui.core = self.ui.bridge.get_core()
-        self.ui.studio = self.ui.bridge.get_studio()
+        self.ui.mm_studio = self.ui.bridge.get_studio()
 
         #preload a config for development
         self.ui.selected_preset = -1
@@ -38,9 +47,7 @@ class mdma(QtWidgets.QMainWindow):
         self.ui.neural_net_configuration = ''
 
         #for development purposes
-        # self.initalProgram  = [{'channels': [{'Group': 'Channel', 'Preset': 'Cy5', 'Exposure': 100}], 'positions': [{'Position Label': 'Pos0', 'X': 0, 'Y': 0, 'Z': 0, 'XYStage': 'XY', 'ZStage': 'Z'}, {'Position Label': 'Pos1', 'X': 0, 'Y': 0, 'Z': 0, 'XYStage': 'XY', 'ZStage': 'Z'}, {'Position Label': 'Pos2', 'X': 0, 'Y': 0, 'Z': 0, 'XYStage': 'XY', 'ZStage': 'Z'}, {'Position Label': 'Pos3', 'X': 0, 'Y': 0, 'Z': 0, 'XYStage': 'XY', 'ZStage': 'Z'}, {'Position Label': 'Pos4', 'X': 0, 'Y': 0, 'Z': 0, 'XYStage': 'XY', 'ZStage': 'Z'}, {'Position Label': 'Pos5', 'X': 0, 'Y': 0, 'Z': 0, 'XYStage': 'XY', 'ZStage': 'Z'}, {'Position Label': 'Pos6', 'X': 0, 'Y': 0, 'Z': 0, 'XYStage': 'XY', 'ZStage': 'Z'}, {'Position Label': 'Pos7', 'X': 0, 'Y': 0, 'Z': 0, 'XYStage': 'XY', 'ZStage': 'Z'}, {'Position Label': 'Pos8', 'X': 0, 'Y': 0, 'Z': 0, 'XYStage': 'XY', 'ZStage': 'Z'}, {'Position Label': 'Pos9', 'X': 0, 'Y': 0, 'Z': 0, 'XYStage': 'XY', 'ZStage': 'Z'}, {'Position Label': 'Pos10', 'X': 0, 'Y': 0, 'Z': 0, 'XYStage': 'XY', 'ZStage': 'Z'}, {'Position Label': 'Pos11', 'X': 0, 'Y': 0, 'Z': 0, 'XYStage': 'XY', 'ZStage': 'Z'}], 'frames': [0, 600, 1200, 1800, 2400, 
-        #                         3000]}, {'channels': [{'Group': 'Objective', 'Preset': '10X', 'Exposure': 100}], 'positions': [{'Position Label': 'Pos6', 'X': 0, 'Y': 0, 'Z': 0, 'XYStage': 'XY', 'ZStage': 'Z'}, {'Position Label': 'Pos7', 'X': 0, 'Y': 0, 'Z': 0, 'XYStage': 'XY', 'ZStage': 'Z'}, {'Position Label': 'Pos8', 'X': 0, 'Y': 0, 
-        #                         'Z': 0, 'XYStage': 'XY', 'ZStage': 'Z'}, {'Position Label': 'Pos9', 'X': 0, 'Y': 0, 'Z': 0, 'XYStage': 'XY', 'ZStage': 'Z'}, {'Position Label': 'Pos10', 'X': 0, 'Y': 0, 'Z': 0, 'XYStage': 'XY', 'ZStage': 'Z'}, {'Position Label': 'Pos11', 'X': 0, 'Y': 0, 'Z': 0, 'XYStage': 'XY', 'ZStage': 'Z'}], 'frames': [0, 1800]}]      
+        # self.initalProgram  = OVERWRITE
         # self.ui.configurations = self.initalProgram
         
         #populate the list
@@ -61,8 +68,6 @@ class mdma(QtWidgets.QMainWindow):
         self.ui.pushButton_save.clicked.connect(self.save_setting)
         self.ui.pushButton_updatePositions.clicked.connect(self.update_positions)
         self.ui.pushButton_changePositions.clicked.connect(self.change_positions)
-        
-        # self.ui.closeEvent = self.closeEvent
 
     def add_configuration_call(self):
         #open a configuration window and grab the signal, put in into the imaging configuration list
@@ -75,7 +80,7 @@ class mdma(QtWidgets.QMainWindow):
         self.ui.selected_preset = self.ui.listWidget_configs.currentRow() #store which preset was selected - otherwise the it could be changed by accident
         if  self.ui.selected_preset == -1:
             return
-        self.conf_window = add_configuration.add_configuration(preset=self.ui.configurations[self.ui.selected_preset], windowMode='edit') #open in editing mode
+        self.conf_window = add_configuration.add_configuration(preset=self.ui.configurations[self.ui.selected_preset], window_mode='EDIT') #open in editing mode
         self.conf_window.config_to_emit.connect(self.edit_configuration)
 
     @QtCore.Slot(dict)
@@ -193,30 +198,77 @@ class mdma(QtWidgets.QMainWindow):
         self.ui.acq._run()
 
     def update_positions(self):
-        #I guess loop through every position in the self.configurations and change the x,y,.. to what is new,
-        #First check if the positions match, otherwise bail out!
-        pass
+        #loop the configurations and check match the position in the current positions in micromanager
+        #if the position exists in configuration and micromanager, change the configuration to the 
+        #position in micromanager. 
+        #TODO - is this safe, what if some positions are removed in settings before acquisition?
+        positions = get_positions.get_positions(mm_studio=self.ui.mm_studio)
+
+        for conf in self.ui.configurations:
+            for i, this_pos in enumerate(conf['positions']):
+                #find if 'this_pos' exists in 'positions'
+                for that_pos in positions:
+                    if this_pos['Position Label'] == that_pos['Position Label']:
+                        conf['positions'][i] = that_pos
+
+        # self.ui.listWidget_configs.addItem(self.print_configuration(conf)) 
+        #loop the channels and match the positions and update when necessary
 
     def change_positions(self):
-        #easier than update - just grab the lost of positions and then change the self.configurations to the new positions
-        pass
+        #get the list of positions and then change the self.configurations to the new positions, retype the listWidget
+        #!IMPORTANT - this will change all positions to the current position list in micromanager, complicated position arrangements may be loast
+        #TODO - maybe its better to change/update the positision only for selected configuration
+        
+        self.ui.listWidget_configs.clear()
+        positions = get_positions.get_positions(mm_studio=self.ui.mm_studio)
+        for conf in self.ui.configurations:
+            conf['positions'] = positions
+            self.ui.listWidget_configs.addItem(self.print_configuration(conf)) 
+        
+        self.print_configuration(conf)
 
     def save_setting(self):
         #select a file to save the parameters of the acquision: how to store them? 
-        file_name = QFileDialog.getSaveFileName(self, "Save Config. File",
+        file_name, _ = QFileDialog.getSaveFileName(self, "Save Config. File",
                                                       "C:\Documents\\",
                                                       "configuration file, '.txt")
 
         if file_name[0] == '': #if cancel was pressed
             return
         
-        #TODO finish this part
-        pass
-
+        file_name = file_name+'.txt'
+        with open(file_name, 'w') as f:
+            for conf in self.ui.configurations:
+                f.write(json.dumps(conf, separators =(',',':')))
+                f.write('\n')
+        
     def load_settings(self):
-        #figure out first how to store the configurations
-        print('load')
+        #load saved configuration from txt file - json file
+        fileName, _ = QtWidgets.QFileDialog.getOpenFileName(parent=self, 
+                                                            caption='select model',
+                                                            filter = "*.txt")
+        
+        with open(fileName) as f:
+            #TODO - check if the configuration is in correct format - improve this section
+            for l in f:
+                #check if the configuration contains  necessary fields
+                try:
+                    test_cast = json.loads(l)
+                    test_cast['channels']
+                except:
+                    print('incorrect configuration file')
+                    return
+                # l['Segmentation']
+                # l['positions']
+                # l['frames']
 
+        with open(fileName) as f:
+            self.ui.configurations =  [json.loads(l) for l in f]
+        
+        self.ui.listWidget_configs.clear()
+        for conf in self.ui.configurations:
+            self.ui.listWidget_configs.addItem(self.print_configuration(conf)) 
+    
     def compile_experiment(self, save_root=None):
         #parse 1-
         #        time
@@ -239,11 +291,6 @@ class mdma(QtWidgets.QMainWindow):
         #               ['OtherDeviceName', 'OtherPropertyName', 'OtherPropertyValue']],
         #   }
 
-        #TODO - compile to make the positions go in order from Pos0 - PosXX
-        #test = ['Pos11','Pos10','Pos0','Pos100']
-        #out = [''.join(filter(str.isdigit, t)) for t in test]
-        #out.sort(key=int)
-        #print(out)
         events = []
         for config in self.ui.configurations:
             for time_counter, time_value in enumerate(config['frames']):
@@ -273,9 +320,6 @@ class mdma(QtWidgets.QMainWindow):
 
     def eventFilter(self,source,event):
         #filetring events, i can catch the closing event here too
-
-        # print(event.type())
-
         #check if over a preset - how to add action to click on menu?
         if event.type() == QtCore.QEvent.Type.ContextMenu:
             if source.itemAt(event.pos()) is not None:
@@ -286,17 +330,9 @@ class mdma(QtWidgets.QMainWindow):
                 
                 menu.exec(event.globalPos())
                 
-                # item = source.itemAt(event.pos())
-                # print(item.text()) - acces the item in qlistwidget
                 return True
 
-        #cath the closing behavior - this also kills the acquisition
-        #somehow def closeEvent(self, event) wont work here -> self.ui. is a problem?
-        # if event.type() == QtCore.QEvent.Type.Hide:
-        #     os._exit(1)
-
         return super().eventFilter(source,event) #i dont know what this does? return False could work too
-
 
 def main():
     # configs = get_configs(core) #dictionary to store the MM configurations
