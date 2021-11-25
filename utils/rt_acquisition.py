@@ -163,11 +163,11 @@ class run_acquisition:
         """
         #construct real time acquisition function that checks for queue
         import torch
-        from utils.UnetPlusPlus2 import UNet
+        from utils.unet import UNet, UNet_deep
         import numpy as np
         from skimage import io, measure, morphology
 
-        net = UNet(num_classes=1)
+        net = UNet(num_classes=1) #switch cases
         # saved_model = 'F:\\Jakub\\mdma-main\\Unet_mixed_brightnessAdj_Adam_HybridLoss_512px_cellsUnweighted.pth' #01.06.2021
         # saved_model = 'C:\\Users\\kubus\\Documents\\trained_models\\Unet_mixed_brightnessAdj_Adam_HybridLoss_512px_cellsUnweighted.pth' #01.06.2021
         
@@ -195,9 +195,11 @@ class run_acquisition:
 
             im = im.astype('float32')
 
-            #pad image to 16
+            #pad image to match minumum unet reqs
+            pad_size = 32
+
             sz = im.shape
-            pad_with = np.ceil(np.array(sz)/16)*16 - sz
+            pad_with = np.ceil(np.array(sz)/pad_size)*pad_size - sz
             pad_with = pad_with.astype('int')
             im = np.pad(im, pad_width=((0,pad_with[0]),(0,pad_with[1])),mode='constant')
 
