@@ -21,6 +21,9 @@ class run_acquisition:
     TODO-update documentation
     TODO-error handling
     TODO-connect segmentation and non-segmentation version together with segmentation and barcode flags
+    TODO-add 'on-the-fly' stabilization
+    TODO-change the metadata name from phase to 'segmentation' for segmented image
+    TODO-add compression for saving of images
     Kuba
     """
 
