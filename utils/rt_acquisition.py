@@ -84,10 +84,10 @@ class run_acquisition:
             which_image = int(''.join(x for x in which_image.split('/')[-1] if x.isdigit())) + 1 #plus 1 because names start from 0
 
             if which_image % int(self.events[im_num]['segmentation']['save_frames']) == 0: #save if mod of image and save frames is 0
-                io.imsave(self.events[im_num]['save_location'], image, check_contrast=0)
+                io.imsave(self.events[im_num]['save_location'], image, compress=6, check_contrast=False)
                 # cv.imwrite(self.events[im_num]['save_location'], image) #flag is IMWRITE_TIFF_COMPRESSION + number - refer to libtiff for integer constants for compression
         else:
-            io.imsave(self.events[im_num]['save_location'], image, check_contrast=False)
+            io.imsave(self.events[im_num]['save_location'], image, compress=6,check_contrast=False)
             # cv.imwrite(self.events[im_num]['save_location'], image) #i think by defalt it uses compression. 
         
         #update metadata - matadata is json with a format:
@@ -167,10 +167,12 @@ class run_acquisition:
         #construct real time acquisition function that checks for queue
         import torch
         from utils.unet import UNet, UNet_deep
+        from utils.watershed import watershed
         import numpy as np
         from skimage import io, measure, morphology
 
-        net = UNet(num_classes=1) #switch cases
+        # net = UNet(num_classes=1) #switch cases
+        net = UNet_deep() #switch cases
         # saved_model = 'F:\\Jakub\\mdma-main\\Unet_mixed_brightnessAdj_Adam_HybridLoss_512px_cellsUnweighted.pth' #01.06.2021
         # saved_model = 'C:\\Users\\kubus\\Documents\\trained_models\\Unet_mixed_brightnessAdj_Adam_HybridLoss_512px_cellsUnweighted.pth' #01.06.2021
         
@@ -217,10 +219,13 @@ class run_acquisition:
             pred = torch.sigmoid(pred)
             pred = pred.to('cpu').detach().numpy().squeeze(0).squeeze(0)
             pred = pred[0:sz[0], 0:sz[1]]
+            
             thresh = 0.5
             pred = pred > thresh
+            pred = watershed(pred)
             pred = morphology.remove_small_objects(pred,100)
             pred_labels = measure.label(pred).astype('uint16')
+           
             io.imsave(save_path,pred_labels,compress=6,check_contrast=0)
             # cv.imwrite(save_path,pred_labels)
 
@@ -237,21 +242,28 @@ class run_acquisition:
         if barcode_img is None:
             top_left = None
             bottom_right = None
-            b_image = np.zeros((100,100))
+            
+            #for debugging - switched off because barcode image is not saved
+            # b_image = np.zeros((100,100))
+
         else:
             top_left, bottom_right = match_barcode(image, barcode_img)
 
-            #for debugging
-            b_image = image[top_left[1]:bottom_right[1],top_left[0]:bottom_right[0]]
+            #for debugging - switched off because barcode image is not saved
+            # b_image = image[top_left[1]:bottom_right[1],top_left[0]:bottom_right[0]]
             # #save barcode image 
         
         barcode_save_path = self.events[im_num]['save_location'].replace(self.events[im_num]['channel']['config'],'barcode')
         
-        #could be moved for the first instance of the function call
-        if not(os.path.exists(os.path.split(barcode_save_path)[0])):
-            os.makedirs(os.path.split(barcode_save_path)[0])
+        #!!
+        #DONT SAVE THE BARCODE IMAGE - IT SEEMS TO BE STABLE ENOUGH
+        #!!
+
+        # #could be moved for the first instance of the function call
+        # if not(os.path.exists(os.path.split(barcode_save_path)[0])):
+        #     os.makedirs(os.path.split(barcode_save_path)[0])
         
-        io.imsave(barcode_save_path, b_image, check_contrast=0)
+        # io.imsave(barcode_save_path, b_image, compress=6, check_contrast=0)
 
         barcode_loc = dict()
         barcode_loc['file'] = barcode_save_path
