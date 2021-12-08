@@ -81,13 +81,13 @@ class run_acquisition:
 
             #take number portion of the save file and check which image it is
             which_image = self.events[im_num]['save_location']
-            which_image = int(''.join(x for x in which_image.split('/')[-1] if x.isdigit())) + 1 #plus 1 because names start from 0
+            which_image = int(''.join(x for x in which_image.split('/')[-1] if x.isdigit())) #
 
-            if which_image % int(self.events[im_num]['segmentation']['save_frames']) == 0: #save if mod of image and save frames is 0
+            if which_image % int(self.events[im_num]['segmentation']['save_frames']) == 0: #save if mod of image and save frames is 0 - this work also with the first image
                 io.imsave(self.events[im_num]['save_location'], image, compress=6, check_contrast=False)
                 # cv.imwrite(self.events[im_num]['save_location'], image) #flag is IMWRITE_TIFF_COMPRESSION + number - refer to libtiff for integer constants for compression
         else:
-            io.imsave(self.events[im_num]['save_location'], image, compress=6,check_contrast=False)
+            io.imsave(self.events[im_num]['save_location'], image, compress=6, check_contrast=False)
             # cv.imwrite(self.events[im_num]['save_location'], image) #i think by defalt it uses compression. 
         
         #update metadata - matadata is json with a format:
@@ -172,7 +172,7 @@ class run_acquisition:
         from skimage import io, measure, morphology
 
         # net = UNet(num_classes=1) #switch cases
-        net = UNet_deep() #switch cases
+        net = UNet(max_filters = 512) #switch cases
         # saved_model = 'F:\\Jakub\\mdma-main\\Unet_mixed_brightnessAdj_Adam_HybridLoss_512px_cellsUnweighted.pth' #01.06.2021
         # saved_model = 'C:\\Users\\kubus\\Documents\\trained_models\\Unet_mixed_brightnessAdj_Adam_HybridLoss_512px_cellsUnweighted.pth' #01.06.2021
         
@@ -222,11 +222,11 @@ class run_acquisition:
             
             thresh = 0.5
             pred = pred > thresh
-            pred = watershed(pred)
+            # pred = watershed(pred)
             pred = morphology.remove_small_objects(pred,100)
             pred_labels = measure.label(pred).astype('uint16')
            
-            io.imsave(save_path,pred_labels,compress=6,check_contrast=0)
+            io.imsave(save_path,pred_labels, compress=6, check_contrast=False)
             # cv.imwrite(save_path,pred_labels)
 
 
@@ -241,7 +241,7 @@ class run_acquisition:
 
         if barcode_img is None:
             top_left = None
-            bottom_right = None
+            # bottom_right = None
             
             #for debugging - switched off because barcode image is not saved
             # b_image = np.zeros((100,100))
